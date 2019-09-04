@@ -1,0 +1,352 @@
+%%%%%%%%%%%%%%%%%%%% author.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% sample root file for your "contribution" to a contributed volume
+%
+% Use this file as a template for your own input.
+%
+%%%%%%%%%%%%%%%% Springer %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RECOMMENDED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[graybox]{svmult}
+% choose options for [] as required from the list
+% in the Reference Guide
+\usepackage{type1cm}        % activate if the above 3 fonts are
+                            % not available on your system
+%
+\usepackage{makeidx}         % allows index generation
+\usepackage{graphicx}        % standard LaTeX graphics tool
+                             % when including Fig.~files
+\usepackage{multicol}        % used for the two-column index
+\usepackage[bottom]{footmisc}% places footnotes at page bottom
+\usepackage{newtxtext}       % 
+\usepackage{newtxmath}       % selects Times Roman as basic font
+% see the list of further useful packages
+% in the Reference Guide
+%\makeindex             % used for the subject index
+                       % please use the style svind.ist with
+                       % your makeindex program
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{listings, multirow}
+\lstset{%
+ language={C},
+% basicstyle={\scriptsize},%
+% identifierstyle={\scriptsize},%
+ basicstyle={\small},%
+ identifierstyle={\small},%
+% commentstyle={\small\itshape},%
+%commentstyle={\scriptsize},%
+commentstyle={\small},%
+ keywordstyle={\small\bfseries},%
+ ndkeywordstyle={\small},%
+stringstyle={\small\ttfamily},
+ frame={tb},
+ breaklines=true,
+ columns=[l]{fullflexible},%
+ numbers=left,%
+ xrightmargin=1zw,%
+ xleftmargin=1.5zw,%
+ numberstyle={\small},%
+ stepnumber=1,
+ numbersep=1zw,%
+% lineskip=-0.1ex%
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\title*{Mixed-language programming with XcalableMP}
+% Use \titlerunning{Short Title} for an abbreviated version of
+% your contribution title if the original one is too long
+\author{Masahiro Nakao}
+% Use \authorrunning{Short Title} for an abbreviated version of
+% your contribution title if the original one is too long
+\institute{Masahiro Nakao \at RIKEN Center for Computational Science, 7-1-26 Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan, \email{masahiro.nakao@riken.jp}}
+%
+% Use the package "url.sty" to avoid
+% problems with special characters
+% used in your e-mail or web address
+%
+\maketitle
+
+\abstract*{This chapter describes the linkage functions between XcalableMP and MPI library. Moreover, it also describes how to call XMP program from Python program.}
+
+\abstract{This chapter describes the linkage functions between XcalableMP and MPI library. Moreover, it also describes how to call XMP program from Python program.}
+
+\section{Background}
+To develop applications on high-performance computing (HPC) cluster systems,
+Partitioned Global Address Space (PGAS) languages that can demonstrate high productivity are used\cite{1303318,Katherine,CGPOP2011,doi:10.1177/1094342017698214}.
+Because the use of PGAS languages is familiar in one-sided communication,
+applications in PGAS languages can sometimes exhibit higher performance than those using MPI library by directly using a communication layer close to hardware\cite{doi:10.1177/1094342017698214,Jose:2010:UUM:2020373.2020378}. 
+Examples of PGAS languages include XcalableMP (XMP)\cite{doi:10.1177/1094342017698214,2013nakao,2012nakao,xmp-spec},
+XcalableACC\cite{nakao2014,xacc-spec,nakao2017,nakao2019}, Coarray Fortran\cite{Numrich:1998:CFP:289918.289920}, PCJ\cite{pcj}, Unified Parallel C\cite{upc-1.3},
+UPC++\cite{upc_plus_plus}, HabaneroUPC++\cite{Kumar:2014:HCP:2676870.2676879}, X10\cite{Charles:2005:XOA:1103845.1094852},
+Chapel\cite{Chamberlain:2007:PPC:1286120.1286123}, and DASH\cite{DBLP:journals/corr/FurlingerFK16}.
+
+Although PGAS languages have many advantages,
+re-implementing an existing MPI application using a PGAS language is often not realistic for the following reasons:
+(1) since the number of lines of a real-world application code may reach several million, the programming cost for re-implementing is excessive, and
+(2) cases where productivity and performance have been improved by PGAS languages are limited.
+Moreover, since each programming language generally has its own strong and weak points, it is difficult to develop all parallel applications using just one programming language.
+
+In order to exploit the advantages of a PGAS language,
+it is important to consider the linkage between the PGAS language and other languages.
+For example,
+modifying only a part where the performance or code outlook will be better using a PGAS language
+has the potential to partially alleviate the two problems listed in the previous paragraph because the programming cost of partial re-implementation is smaller than that of whole re-implementation.
+
+We have designed an XMP language, and developed Omni compiler described in Chapter 2.
+This chapter describes the development of linkage functions between XMP and MPI library for Omni compiler.
+Moreover, it also describes how to call XMP program from Python program.
+Especially,
+since Python has numerous scientific computing libraries,
+we believe that linking Python and XMP will lead to a significant reduction in programming cost when developing HPC applications.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Translation by Omni compiler}\label{sec:translation}
+
+\begin{figure}[h]
+\sidecaption
+\includegraphics[scale=.82]{img/translation.eps}
+\caption{Example of translation in Omni compiler\cite{pgas-ei}} \label{fig:translation}
+\end{figure}
+
+Fig.~\ref{fig:translation} shows an example of a code translation for XMP in C language, where the code of the left figure is translated into that of the right figure
+\footnote{Since Omni compiler performs almost the same operation for an XMP in Fortran code, these examples are omitted in this chapter.}.
+Omni compiler inserts {\bf xmp\_init\_all()} and {\bf xmp\_finalize\_all()}  automatically  to perform the initialization and finalization processes, respectively.
+These functions are defined in Omni compiler runtime library. 
+Since  {\bf xmp\_init\_all()} calls  {\bf MPI\_Init()} and {\bf MPI\_Comm\_dup()} internally to duplicate {\bf MPI\_COMM\_WORLD}.
+Since the newly duplicated communicator is  used to perform XMP communication,
+user MPI communication does not conflict with  XMP communication.
+Additionally,  {\bf xmp\_finalize\_all()}  calls  {\bf MPI\_Finalize()} function internally.
+
+In an XMP program,
+the \textbf{task} directive can divide a node set.
+The implementation of the \textbf{task} directive creates a new communicator based on the duplicated communicator by  {\bf MPI\_Comm\_split()}.
+If communication occurs within the range of the \textbf{task} directive,
+then the new communicator is used to perform the communication.
+
+Omni compiler renames a user {\bf main()} as  {\bf xmpc\_main()} in order to place the {\bf xmpc\_main()} between  {\bf xmp\_init\_all()} and {\bf xmp\_finalize\_all()}.
+New {\bf main()} calls {\bf xmpc\_main()}.
+The above special translation is performed only for {\bf main()}.
+For other functions (such as {\bf foo()}), renaming is not performed.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Functions for mixed-language}
+For a mixed-language programming with XMP, Omni compiler has the following functions.
+
+\begin{itemize}
+\item Calling an MPI program from an XMP program
+\item Calling an XMP program from an MPI program
+\item Calling an XMP program from a Python program
+\end{itemize}
+
+\subsection{Function to call MPI program from XMP program}\label{sec:MPIfromXMP}
+\begin{table}[h]
+\centering
+\caption{Functions to call MPI program from XMP program\cite{pgas-ei}} \label{tab:MPIfromXMP}
+\begin{tabular}{l|l|l|l}
+\hline\noalign{\smallskip}
+~Language~  & ~Return Value Type~ & ~Function~ & ~Description~ \\ 
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+~XMP/C      & ~void              & ~xmp\_init\_mpi(int*, char***)~ & \multirow{2}{*}{~Initialize MPI environment}\\
+~XMP/F       & ~(None)          & ~xmp\_init\_mpi() & \\  
+\noalign{\smallskip}\hline\noalign{\smallskip}
+~XMP/C      & ~MPI\_Comm & ~xmp\_get\_mpi\_comm(void) & ~Create MPI communicator from \\
+~XMP/F       & ~Integer         & ~xmp\_get\_mpi\_comm() &   ~XMP node set \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+~XMP/C      & ~void              & ~xmp\_finalize\_mpi(void) & \multirow{2}{*}{~Finalize MPI environment}\\
+~XMP/F       & ~(None)          & ~xmp\_finalize\_mpi() & \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\sidecaption
+\includegraphics[scale=.82]{img/program1.eps}
+\caption{Example of calling MPI program (mpi.c) from XMP program (xmp.c)\cite{pgas-ei}} \label{fig:program1}
+\end{figure}
+
+Table~\ref{tab:MPIfromXMP}  shows  the functions to call an MPI program from an XMP program.
+These functions are defined in Appendix A.1 of the XMP specification version 1.4\cite{xmp-spec}.
+Fig.~\ref{fig:program1} also shows an example of how to use these functions.
+In line 1 of the left figure, an XMP header file (xmp.h) is included to use the functions in Table~\ref{tab:MPIfromXMP}.
+In line 2, an MPI header file (mpi.h) is included to obtain the information of the MPI communicator type that is used in line 7.
+In line 6,  {\bf xmp\_init\_mpi()} initializes an MPI environment.
+In line 8,  {\bf xmp\_get\_mpi\_comm()}  returns an MPI communicator from the information of the executing XMP node set.
+In line 9,  {\bf foo()}  which is defined in right figure is called.
+In line 10,  {\bf xmp\_finalize\_mpi()}  finalizes the MPI environment.
+Note that  {\bf xmp\_get\_mpi\_comm()}  and other MPI functions must be placed between  {\bf xmp\_init\_mpi()} and {\bf xmp\_finalize\_mpi()}.
+
+The implementations of  {\bf xmp\_init\_mpi()} and {\bf xmp\_finalize\_mpi()} are empty because,
+as shown in Fig.~\ref{fig:translation},
+the {\bf xmp\_init\_all()} and {\bf xmp\_finalize\_all()} are always invoked at the beginning and the end of the program, and these functions initialize and finalize the MPI environment.
+Next, an implementation of {\bf xmp\_get\_mpi\_comm()} will be described. 
+As shown in section \ref{sec:translation}, the \textbf{task} directive creates a new MPI communicator.
+Thus, an MPI communicator is stored at a stack data architecture in Omni compiler runtime library. 
+The {\bf xmp\_get\_mpi\_comm()} returns an MPI communicator at the top of the stack.
+
+An example of compilation using Omni compiler is as follows:
+\begin{svgraybox}
+\$ mpicc mpi.c -c -o mpi.o\\
+\$ xmpcc xmp.c -c -o xmp.o \\
+\$ xmpcc mpi.o xmp.o -o a.out
+\end{svgraybox}
+
+Since Omni compiler uses an MPI compiler as a native compiler internally, MPI programs can also be compiled with the ``xmpcc'' command as follows:
+\begin{svgraybox}
+\$ xmpcc mpi.c -o mpi.o
+\end{svgraybox}
+
+Thus, it is also possible to execute all the compilation work using a single command as follows:
+\begin{svgraybox}
+\$ xmpcc mpi.c xmp.c -o a.out
+\end{svgraybox}
+
+The execution binary is executed using the execution command provided by user's MPI environment as follows:
+\begin{svgraybox}
+\$ mpirun -np 4 a.out
+\end{svgraybox}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Function to call XMP program from MPI program}
+\begin{table}[h]
+\centering
+\caption{Functions to call XMP program from MPI program\cite{pgas-ei}} \label{tab:XMPfromMPI}
+\begin{tabular}{l|l|l|l}
+\hline\noalign{\smallskip}
+~Language~  & ~Return Value Type~ & ~Function & ~Description \\ 
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+~XMP/C      & ~void              & ~xmp\_init(MPI\_Comm)~ & \multirow{2}{*}{~Initialize XMP environment~}\\
+~XMP/F       & ~(None)          & ~xmp\_init(Integer) & \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+~XMP/C      & ~void              & ~xmp\_finalize(void) & \multirow{2}{*}{~Finalize XMP environment~}\\
+~XMP/F       & ~(None)          & ~xmp\_finalize() & \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\sidecaption
+\includegraphics[scale=.82]{img/program2.eps}
+\caption{Example of calling XMP program from MPI program\cite{pgas-ei}} \label{fig:program2}
+\end{figure}
+
+Table~\ref{tab:XMPfromMPI} shows the functions to call an XMP program from an MPI program.
+These functions are defined in Appendix A.2 of the XMP specification version 1.4\cite{xmp-spec}.
+Fig.~\ref{fig:program2} shows an example of how to use these functions. 
+In line 1 of the left figure,
+an XMP header file is included to use functions in the Table \ref{tab:XMPfromMPI}.
+In line 7,  {\bf xmp\_init()} initializes an XMP environment,
+and creates the XMP node set based on the communicator specified in its argument.
+In line 8,
+ {\bf foo()}  in the right figure is called.
+In line 9,  {\bf xmp\_finalize()} finalizes the XMP environment.
+Note that the XMP functions must be placed between  {\bf xmp\_init()} and {\bf xmp\_finalize()}.
+
+Though the {\bf xmp\_init()} is implemented to call the {\bf xmp\_init\_all()} function described in Section \ref{sec:translation},
+it also performs the following ingenuities:
+
+\begin{itemize}
+\item Before calling {\bf xmp\_init()}, {\bf MPI\_Init()} must be called in the MPI program.
+Therefore, we added a procedure that ensures  {\bf MPI\_Init()} is not called in  {\bf xmp\_init\_all()}.
+\item As shown in Section \ref{sec:translation},  {\bf xmp\_init\_all()} duplicates {\bf MPI\_COMM\_WORLD} to perform XMP communication.
+We also added a procedure that ensures the communicator specified in  {\bf xmp\_init()} is duplicated instead of {\bf MPI\_COMM\_WORLD}.
+\end{itemize}
+
+Basically, {\bf xmp\_finalize()} is also implemented to call  {\bf xmp\_finalize\_all()}  in Section \ref{sec:translation}.
+As with  {\bf xmp\_init()},
+after calling  {\bf xmp\_finalize()}, {\bf MPI\_Finalize()}  is called in an MPI program.
+Therefore,
+we added a procedure to ensure that  {\bf MPI\_Finalize()} is not called in  {\bf xmp\_finalize\_all()}.
+
+The method to compile and execute is the same as Section \ref{sec:MPIfromXMP}.
+
+\subsection{Function to call XMP program from Python program}
+%\begin{table}[h]
+%\centering
+%\caption{Functions to call XMP program from Python program} \label{tab:XMPfromPython}
+%\begin{tabular}{l|l|l}
+%\noalign{\smallskip}\hline\noalign{\smallskip}
+%~Return Value Type~ & ~Function & ~Description \\ 
+%\noalign{\smallskip}\svhline\noalign{\smallskip}
+%\multirow{2}{*}{~(None)}  & ~init\_py(ctypes.CDLL, mpi4py.MPI.Intracomm)~ & ~Initialize XMP environment\\
+%& ~finalize\_py(ctypes.CDLL) & ~Finalize XMP environment\\
+%\noalign{\smallskip}\hline\noalign{\smallskip}
+%\end{tabular}
+%\end{table}
+
+There are two types of calling an XMP program from a Python program in Omni compiler;
+ the one is ``calling from a parallel Python program'', the other is ``calling from a sequential Python program''.
+
+\subsubsection{From parallel Python program}
+\begin{figure}[h]
+\sidecaption
+\includegraphics[scale=.82]{img/program3.eps}
+\caption{Example of calling XMP program (bar.c) from parallel Python program (bar.py)\cite{pgas-ei}} \label{fig:program3}
+\end{figure}
+
+Fig.~\ref{fig:program3} shows an example of calling an XMP program from a parallel Python program.
+We assume the use of ``mpi4py'' for a Python MPI environment.
+In line 2 of the left figure, an XMP package is imported which is in Omni compier.
+In line 4, the shared library ({\bf bar.so}) created from the right figure is read.
+In line 8, {\bf xmp.Lib.call()} calls a parallel XMP program.
+This function performs initialization and finalization for an XMP environment internally.
+
+To use the features, the Omni compiler runtime library must be a shared library. 
+Therefore, we develop a new compile process to create a shared library for Omni compiler. 
+When adding an option ``{\tt {-}{-}enable-shared}'' to ``{\tt ./configure}'' as follows, shared libraries are created.
+
+\begin{svgraybox}
+\$ ./configure {-}{-}enable-shared
+\end{svgraybox}
+
+An example of compilation and execution using Omni compiler is as follows. 
+A shared library is created by ``xmpcc'' command from a user program. 
+Compile options used to create the shared library depend on a native compiler (e.g., ``{\tt -fPIC -shard}'' if the native compiler is gcc). 
+The execution binary is executed via Python.
+
+\begin{svgraybox}
+\$ xmpcc -fPIC -shared bar.c -o bar.so\\
+\$ mpirun -np 4 python bar.py
+\end{svgraybox}
+
+\subsubsection{From sequential Python program}
+\begin{figure}[h]
+\sidecaption
+\includegraphics[scale=.82]{img/program6.eps}
+\caption{Example of spawning XMP program from sequential Python program\cite{pgas-ei}} \label{fig:program6}
+\end{figure}
+%\begin{figure}[h]
+%\sidecaption
+%\includegraphics[scale=.82]{img/program4.eps}
+%\caption{XMP package in Python (Right) and xmp\_init\_py function (Left)} \label{fig:program4}
+%\end{figure}
+
+%The left figure of Fig.~\ref{fig:program4} shows a Python code of the XMP package that defines {\bf init\_py()} and {\bf finalize\_py()}.
+%Although the mpi4py can translate an MPI communicator with a Fortran type (MPI\_FINT type) using the {\bf py2f} method, 
+%it cannot translate it with a C type.
+%Thus,  {\bf init\_py()} first creates the Fortran type MPI communicator,
+%after which  {\bf xmp\_init\_py()} defined in the Omni compiler runtime translates it to a C type MPI communicator using {\bf MPI\_Comm\_f2c()}.
+%The right figure of Fig.~\ref{fig:program4}  shows the code of {\bf xmp\_init\_py()}.
+%The {\bf xmp\_init\_py()} also initializes an XMP environment using  {\bf xmp\_init()} shown in Table~\ref{tab:XMPfromMPI}.
+
+Fig.~\ref{fig:program6} shows an example of calling an XMP program from a sequential Python program.
+In line 6, {\bf xmp.Lib.spawn()} calls a parallel XMP program.
+The first argument is number of nodes in XMP.
+The last argument is an option for asynchronous operation.
+If it is true,  processing may return to python before ``{\bf foo()}'' completes.
+In line 7, {\bf xmp.Lib.wait()} waits until ``{\bf foo()}'' completes.
+In line 9, {\bf xmp.Lib.elapse\_time()} returns  processing time for ``{\bf foo()}''.
+
+An example of execution using Omni compiler is as follows. 
+Note that a python program executes with one process, but an XMP program is executed with number of processes specified in code.
+
+\begin{svgraybox}
+\$ mpirun -np 1 python bar.py
+\end{svgraybox}
+
+\section{Conclusion}
+This chapter describes how to use  linkage functions between XMP and MPI library in Omni compiler. 
+Moreover, it  also describes how to call  an XMP program from a Python program.
+Users can call functions written in these languages with a simple procedure.
+Since many existing parallel applications are written in MPI library, these functions can be useful for extending existing applications.
+Furthermore, it will be possible to effectively use the high functionality of Python.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{references}
+\end{document}
