@@ -1,0 +1,736 @@
+\section{Introduction}
+
+Distributed-memory systems are generally used for large-scale
+simulations. To program such systems, Message Passing Interface (MPI) is
+widely adopted. However, the programming with MPI is difficult because
+programmers must describe inter-process communications with
+consideration of the execution flow of the programs, which might cause
+deadlocks or wrong results.
+
+To address this issue, a parallel language named High Performance
+Fortran (HPF) was proposed in 1991. With HPF, users can execute their
+serial programs in parallel by inserting minimal directives into
+them. If users specify data distribution with HPF directives, compilers
+do all other tasks for parallelization (e.g. communication generation
+and work distribution). However, HPF was not widely accepted eventually
+because the compiler’s automatic processing prevents users from
+performance tuning and the performance depends heavily on the
+environment (e.g. compiler version and hardware)
+
+\noindent\hrulefill
+
+\noindent {\bf Note}: For more detail, please refer: Ken Kennedy,
+Charles Koelbel and Hans Zima: The Rise and Fall of High Performance
+Fortran: An Historical Object Lesson, Proc. 3rd ACM SIGPLAN History of
+Programming Languages Conf. (HOPL-III), pp.~7-1-7-22 (2007).
+
+\noindent\hrulefill
+
+In such circumstance, to develop a new parallel programming model that
+enables easy parallelization of existing serial programs and design a
+new language based on it, “the XMP Specification Working Group” was
+established in 2008. This group utilized the lessons from the experience
+of HPF to define a parallel language XcalableMP (XMP). The group was
+reorganized to one of the working groups of PC Cluster Consortium in
+2011.
+
+It is learned from the lessons of HPF that more automatic processing of
+compilers increases the gap between a program and its execution, and, as
+a result, decreases the usability of the language.
+
+In XMP, users specify explicitly the details of parallel programs on the
+basis of compiler directives to make their execution
+easy-to-understand. In particular, users can specify explicitly
+communication, synchronization, data distribution, and work distribution
+to facilitate performance tuning. In addition, XMP supports features for
+one-sided communication on each process, which was not available in
+HPF. This feature might enable users to implement parallel algorithms
+easily.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Target Hardware}
+
+The target of {\XMP} is distributed-memory multicomputers (Figure
+\ref{fig1}). Each computation node, which may contain several cores, has
+its own local memory (shared by the cores, if any), and is connected
+with the others via an interconnection network.
+%
+Each node can access its local memory directly and remote memory (the
+memory of another node) indirectly (i.e., through inter-node 
+communication). However, it is assumed that accessing remote memory may
+be much slower than accessing local memory.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=12cm]{figs/Fig1.eps}
+  \caption{Hardware model.}\label{fig1}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Execution Model}
+
+An {\XMP} program execution is based on the Single Program Multiple Data
+(SPMD) model, where each node starts execution from the same main
+routine, and continues to execute the same code independently
+(i.e., asynchronously), which is referred to as the {\it \Term{replicated
+execution}}, until it encounters an {\XMP} construct.
+
+A set of nodes that executes a procedure, statement, loop,
+a block, etc. is referred to as its {\it \Term{executing node set}}, and is
+determined by the innermost {\tt task}, {\tt loop}, or {\tt array}
+directive surrounding it dynamically, or at runtime.
+%
+The {\it \Term{current executing node set}} is an executing node set of
+the current context, which is managed by the {\XMP} runtime system on
+each node.
+
+The current executing node set at the beginning of the program
+execution, or {\it \Term{entire node set}}, is a node set that
+contains all the available nodes, which can be specified in an 
+implementation-defined way (e.g., through a command-line option).
+
+When a node encounters at runtime either a {\tt loop}, {\tt array}, or
+{\tt task} construct, and is contained by the node set specified by the
+{\tt on} clause of the directive, it updates the current executing node
+set with the specified one and executes the body of the construct, after
+which it resumes the last executing node set and proceeds to execute the
+subsequent statements.
+
+In particular, when a node in the current executing node set encounters a
+{\tt loop} or an {\tt array} construct, it executes the loop or the array
+assignment in parallel with other nodes, so that each iteration of the
+loop or element of the assignment is independently executed by the node
+in which a specified data element resides.
+
+When a node encounters a synchronization or a communication directive,
+synchronization or communication occurs between it and other nodes.
+%
+That is, such {\it \Term{global constructs}} are performed collectively
+by the current executing nodes.
+%
+Note that neither synchronization nor communication occurs unless these
+constructs are being specified.
+
+\begin{figure}
+  \centering
+  \includegraphics{figs/execution.png}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Data Model}
+
+There are two classes of data in {\XMP}: {\it \Term{global data}} and
+{\it \Term{local data}}. Data declared in an {\XMP} program are local by
+default.
+
+Global data are distributed onto the executing node set by
+the {\tt align} directive (see section \ref{sub:align}). Each fragment
+of distributed global data is allocated in the local memory of a node in the
+executing node set.
+
+Local data comprises all data that are not global. They are replicated
+within the local memory of each of the executing nodes.
+
+A node can access directly only local data and sections of global data
+that reside in its local memory.
+%
+To access data in remote memory, explicit communication must be
+specified in ways such as global communication constructs and
+coarray assignments.
+
+In particular, in {\XMPF}, for common blocks that include any global
+variables, it is implementation-defined what storage sequences they
+occupy and how storage association is defined between two of them.
+
+\begin{figure}
+  \centering
+  \includegraphics{figs/architecture.png}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Programming Models}
+
+\subsubsection{Partitioned Global Address Space}
+
+Based on the above models that XMP follows, XMP can be classified as a
+partitioned global address space (PGAS) programming model, such as
+Co-Array Fortran~\cite{caf}, Unified Parallel C~\cite{upc}, and
+Chapel~\cite{chapel}.
+
+In the PGAS model, multiple executing entities (i.e. threads, processes,
+or nodes in XMP) share a part of their address space, which is, however,
+partitioned and a portion of which is local to each executing entity.
+
+The two programming models that XMP supports to achive high
+performance and productivity on PGAS are explained below.
+
+\subsubsection{Global-view Programming Model}
+
+The global-view programming model is useful when, starting from a
+sequential version of a program, the programmer parallelizes it in
+data-parallel style by adding directives with minimum modification.
+%
+In the global-view programming model, the programmer describes the
+distribution of data among nodes using the data distribution
+directives.
+%
+The {\tt loop} construct assigns each iteration of a loop to the node
+at which the computed data is located. 
+%
+The global-view communication directives are used to synchronize nodes,
+maintain the consistency of shadow areas, and move sections of 
+distributed data globally.
+%
+Note that the programmer must specify explicitly communications to make
+all data references in the program local, and this is done using
+appropriate directives.
+
+In many cases, the {\XMP} program according to the global-view
+programming model is based on a sequential program, and it can produce
+the same results, regardless of the number of nodes (Figure
+\ref{fig2}).
+
+There are three groups of directives for the global-view programming
+model. Because these directives are ignored as a comment by the
+compilers of base languages ({\Fort} and {\C}), an {\XMP} program can be
+compiled by them to ensure that they run properly.
+
+
+\paragraph{Data Mapping}
+
+Specifies the data distribution and mapping to nodes (partially
+inherited from HPF).
+
+\paragraph{Work Mapping (Parallelization)}
+
+Assigns a work to a node set. The {\tt loop} construct maps each
+iteration of a loop to nodes owning a specific data elements. The {\tt
+task} construct defines a set amount of work as a {\it \Term{task}}, and
+assigns it to a specific node set.
+
+\paragraph{Communication and Synchronization}
+
+Specifies how to communicate and synchronize with the other compute
+nodes. In {\XMP}, inter-node communication must be explicitly specified
+by the programmer. The compiler guarantees that no communication occurs
+unless it is explicitly specified by the programmer.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=12cm]{figs/Fig2.eps}
+  \caption{Parallelization using the global-view programming model.}
+\label{fig2}
+\end{figure}
+
+
+\subsubsection{Local-view Programming Model}
+
+The local-view programming model is suitable for programs that
+explicitly describe an algorithm and a remote data reference that are to
+be executed by each node (Figure \ref{fig3}).
+
+For the local-view programming model, some language extensions and 
+directives are provided. The coarray notation, which is imported from
+{\Fort} 2008,
+is one such extension, and can be used to specify which replica of a
+local data is to be accessed. For example, the expression of {\tt
+A(i)[N]} is used to access an array element of {\tt A(i)} located on the
+node {\tt N}.
+%
+If the access is a reference, then a one-sided communication to get the
+value from the remote memory (i.e., the {\it get} operation) is issued
+by the executing node.
+If the access is a definition, then a one-sided communication to put a
+value to the remote memory (i.e., the {\it put} operation) is issued by
+the executing node.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=12cm]{figs/Fig3.eps}
+  \caption{Local-view programming model.}
+\label{fig3}
+\end{figure}
+
+
+\subsubsection{Interactions between Global View and Local View}
+
+In the global view, nodes are used to distribute data and works. In the
+local view, nodes are used to address data in the coarray notation.
+%
+In application programs,
+programmers should choose an appropriate data model according to the
+structure of the program. Figure \ref{fig4} illustrates the global view
+and the local view of data.
+
+Data may have both a global view and a local view, and can be accessed
+from either. {\XMP} provides some directives to give the local name
+(alias) to the global data declared in the global-view programming model
+to enable them to also be accessed in the local-view programming
+model. This feature is useful to optimize a certain part of the program
+by using explicit remote data access in the local-view programming
+model.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=12cm]{figs/Fig4.eps}
+  \caption{Global view and local view.}
+\label{fig4}
+\end{figure}
+
+
+\subsection{Base Languages}
+
+The XcalableMP language specification is defined based on Fortran
+and C as the base languages. More specifically, the base language of
+XcalableMP Fortran is Fortran 90 or later, and that of XcalableMP C is
+ISO C90 (ANSI C89) or later with some extensions (see below).
+
+\subsubsection{Array Section in {\XMPC}}
+
+% \label{173437_31Oct14}
+
+% \subsubsection*{Synopsis}
+
+% The array section notation is a notation to describe a part of an array, 
+% which is adapted in Fortran.
+
+% \subsubsection*{Syntax}
+% \index{array section in XMP/C}
+% \index{Syntax!array section in XMP/C}
+
+% \begin{tabular}{llll}
+% \verb![C]! & {\it array-section} & {\bf is} & {\it array-name}{\tt [} \{
+%  {\it triplet} $\vert$ {\it int-expr} \} {\tt ]}...
+% \end{tabular}
+
+% \vspace{0.5cm}
+
+% %where {\it triplet} must be one of:
+% where {\it triplet} is:
+
+% \vspace{0.3cm}
+
+% \begin{tabular}{ll}
+%  \hspace{0.5cm} & {\openb}{\it base}{\closeb} {\tt :}
+%   {\openb}{\it length}{\closeb} {\openb}{\tt :} {\it step}{\closeb}\\
+% % \hspace{0.5cm} & {\tt :} \\
+% \end{tabular}
+
+% \subsubsection*{Description}
+
+In {\XMPC}, the base language C is extended so that a part of an array,
+i.e., an array section, can be put in an {\it array assignment
+statement}, which is described in \ref{sec:Array assignment statements
+in C}, and some {\XMP} constructs. An array section is built from a
+subset of the elements of an array, which is specified by this notation
+including at least one {\it triplet}.
+
+When {\it step} is positive, the {\it triplet} specifies a set of
+subscripts that is a regularly spaced integer sequence of length {\it
+length} beginning with {\it base} and proceeding in increments of {\it
+step} up to the largest.
+%
+When {\it step} is negative, the {\it triplet} specifies a set of
+subscripts that is a regularly spaced integer sequence of length {\it
+length} beginning with {\it base} and proceeding in increments of {\it
+step} down to the smallest.
+
+When {\it base} is omitted, it is assumed to be 0. When {\it length}
+is omitted, it is assumed to account for the remainder of the array
+dimension. When {\it step} is omitted, it is assumed to be 1.
+
+An array section can be considered as a virtual array containing the set
+of elements from the original array, which is determined by all possible
+subscript lists that are specified by the sequence of {\it triplets} or
+{\it int-expr}'s in square brackets.
+
+% % \subsubsection*{Restrictions}
+
+% % \begin{itemize}
+% %  \item \verb![C]! Each of {\it base}, {\it length}, and {\it step} must
+% %        be an integer expression.
+% % % \item \verb![C]! When {\it step} is positive, {\it lower-bound} must be
+% % %       greater than or equal to the lower bound and {\it upper-bound}
+% % %       must be smaller than or equal to the upper bound of the dimension
+% % %       of the array specified by {\it array-name}.
+% % % \item \verb![C]! When {\it step} is negative, {\it lower-bound} must be
+% % %       smaller than or equal to the upper bound and {\it upper-bound}
+% % %       must be greater than or equal to the lower bound of the dimension
+% % %       of the array specified by {\it array-name}.
+% %  \item \verb![C]! {\it length} must be greater than zero.
+% %  \item \verb![C]! {\it step} must not be zero.
+% % \end{itemize}
+
+\subsubsection*{Example}
+\index{Example!array section in XMP/C}
+
+Assuming that an array {\tt A} is declared by the following statement,
+
+\vspace{0.3cm}
+
+\begin{tabular}{ll}
+\hspace{0.5cm} & {\tt int A[100];} \\
+\end{tabular}
+
+\vspace{0.3cm}
+
+\hspace{-0.55cm}some array sections can be specified as follows:
+
+\vspace{0.3cm}
+
+\begin{tabular}{lll}
+\hspace{0.5cm} & {\tt A[10:10]} & array section of 10 elements from {\tt
+ A[10]} to {\tt A[19]} \\
+ & {\tt A[10:]} & array section of 90 elements from
+		  {\tt A[10]} to {\tt A[99]}\\
+ & {\tt A[:10]} & array section of 10 elements from {\tt A[0]} to {\tt
+	 A[9]} \\
+ & {\tt A[10:5:2]} & array section of 5 elements from {\tt A[10]} to
+	 {\tt A[18]} by step 2 \\
+ & {\tt A[:]} & the whole of {\tt A} \\
+\end{tabular}
+
+
+\subsubsection{Array Assignment Statement in {\XMPC}}
+\label{subsubsec:Array assignment statements in C}
+
+% \subsubsection*{Synopsis}
+
+% An array assignment statement copies a value into each element of
+% an array section.
+
+% \subsubsection*{Syntax}
+% \index{array assignment in XMP/C}
+% \index{Syntax!array assignment in XMP/C}
+
+% \begin{tabular}{ll}
+% \verb![C]! & {\it array-section} {\openb}{\tt :}{\tt [}{\it int-expr}{\tt
+%  ]}...{\closeb} {\tt =} {\it expression}{\tt ;}\\
+% \end{tabular}
+
+% \subsubsection*{Description}
+
+The value of each element of the result of the right-hand side expression is
+assigned to the corresponding element of the array section on the
+left-hand side.
+%
+When an operator or an elemental function (see section
+\ref{094142_25Sep13}) is applied to array sections in the right-hand side
+expression, it is evaluated to an array section that has the same shape
+as that of the operands or arguments, and each element of which is the
+result of the operator or function applied to the corresponding element
+of the operands or arguments. A scalar object is assumed to be an array
+section that has the same shape as that of the array section(s), and
+where each element has its value.
+
+Note that an array assignment is a statement, and therefore cannot
+appear as an expression in any other statements.
+
+% \subsubsection*{Restrictions}
+
+% \begin{itemize}
+%  \item \verb![C]! any array section appearing in the right-hand side expression and
+% 	   the left-hand side must have the same shape, i.e., the same number of
+% 	   dimensions and size of each dimension.
+%  % \item \verb![C]! When the right-hand side is an array section, the left-hand side and the right-hand side
+%  %       must have the same shape, i.e., the same number of dimensions and
+%  %       size of each dimension.
+%  \item \verb![C]! If {\it array-section} on the left-hand side is followed by
+%        ``{\tt :}{\tt [}{\it int-expr}{\tt ]}...'', it must be a coarray.
+%  % \item \verb![C]! If {\it variable} on the right-hand side is followed by
+%  %       ``{\tt :}{\tt [}{\it int-expr}{\tt ]}...'', it must be a coarray.
+% \end{itemize}
+
+\subsubsection*{Examples}
+\index{Example!array assignment in XMP/C}
+
+An array assignment statement in the fourth line copies the elements
+{\tt B[0]} through {\tt B[4]} into the elements {\tt A[5]} through {\tt
+A[9]}.
+
+\hspace{\hsize}
+\begin{XCexample}
+int A[10];
+int B[5];
+    ...
+A[5:5] = B[0:5]; 
+\end{XCexample}
+
+
+% \subsubsection{Built-in Functions for Array Section}
+% \index{built-in functions of XMP/C}
+
+% Some built-in functions are defined that can accept one or more array
+% sections as arguments. In addition, some of them are array-valued.
+% %
+% Such array-valued functions can appear in the right-hand side of an
+% array assignment statement, and should be preceded by the {\tt array}
+% directive if the array section is distributed.
+
+% All of the built-in functions for array sections are described in
+% Sections \ref{094142_25Sep13} and \ref{112125_19Sep13}.
+
+
+% \subsubsection{Pointer to Global Data}
+% \label{sec:pointer to global data}
+
+% \paragraph{Name of Global Array}
+
+% The name of a global array is considered to represent an abstract entity
+% in the {\XMP} language. It is not interpreted as the pointer to the array,
+% while the name of a local array is.
+
+% However, the name of a global array that appears in an expression is
+% evaluated to the base address of its local section on each node. The
+% pointer can be operated on each node as if it were a normal (local)
+% pointer.
+
+% \paragraph{Address-of Operator}
+% \index{address-of operator}
+
+% The result of the address-of operator (``{\tt \&}'') applied to an
+% element of a global array is the pointer to the corresponding element of
+% its local section. Note that the value of the result pointer is defined
+% only on the node that owns the element. The pointer can be operated on
+% the node as if it were a normal (local) pointer.
+
+% As a result, for a global array {\tt a}, {\tt a} and {\tt \&a[0]} are
+% not always evaluated to the same value.
+
+\subsubsection{Dynamic Allocation of Global Data in {\XMPC}}
+\label{sec:Dynamic Allocation of Global Data in C}
+
+In {\XMPC}, it is possible to allocate global arrays at runtime.
+%
+Such an allocation is done by performing the following steps.
+%
+\begin{enumerate}
+ \item Declare a pointer to an object of the type of the global array to
+       be allocated.
+ \item Align the pointer with a template as if it were an array.
+ \item Allocate a block of memory of the global size using the {\tt xmp\_malloc}
+       library procedure, and assign the return value to the
+       pointer on each node.
+\end{enumerate}
+
+Note that the first argument of \|xmp_malloc| is the {\it descriptor} of
+the global array, which can be obtained with an operator \|xmp_desc_of|.
+
+\index{Example!dynamic allocation in XMP/C}
+\Intrinsic{xmp\_malloc}
+\Example{template\_fix}
+\Example{xmp\_malloc}
+\Example{xmp\_desc\_of}
+\begin{XCexample}
+#pragma nodes p(NP1,NP2)
+#pragma xmp template t(:,:)
+#pragma xmp distribute t(block,block) onto p
+
+float (*pa)[N2];
+#pragma xmp align pa[i][j] with t(i,j)
+#pragma xmp template_fix t(0:N1-1,0:N2-1)
+
+pa = (float (*)[N2])xmp_malloc(xmp_desc_of(pa), N1, N2);
+\end{XCexample}
+
+% \subsubsection{Descriptor-of Operator}
+% \label{sec:Descriptor of Global Data in C}
+% \index{xmp\_desc\_of@{\tt xmp\_desc\_of}}
+
+% %When distribution of Global data is defined, query function which have 
+% %operator {\tt xmp\_desc\_of} as argument can return some descriptor
+% %information. 
+
+% The \Term{descriptor-of operator} (``{\tt xmp\_desc\_of}'') is
+% introduced as a built-in operator in {\XMPC}.
+
+% The result of the descriptor-of operator applied to {\XMP} entities such
+% as node arrays, templates, and global arrays is their {\it
+% \Term{descriptor}}, which can be used in various ways, including as an
+% argument of some inquiry procedures. The type of the result, {\tt
+% xmp\_desc\_t}, is implementation-defined, and is defined in the {\tt
+% xmp.h} header file in {\XMPC}.
+
+% For the {\tt xmp\_desc\_of} intrinsic function in {\XMPF}, refer to
+% section \ref{subsec: xmp_desc_of}.
+
+% %For details of the {\tt xmp\_desc\_of} library procedure, refer to
+% %Chapter \ref{chap:Intrinsic and library procedures}.
+
+\subsubsection{Support of Intrinsic/Built-in Functions of the Base
+	  Language}
+
+This section describes how intrinsic/built-in functions of the base
+languges work on XMP's global arrays.
+
+Many other intrinsic and library procedures, such as mapping inquiry
+functions and transformational procedures, are defined in XMP. See the
+language specification for their detail.
+
+\paragraph{Array Intrinsic Functions in {\XMPF}}
+\index{array intrinsic functions}
+
+The array intrinsic functions of the base language Fortran are
+classified into three classes: {\it inquiry}, {\it elemental}, and
+{\it transformational}.
+
+It is specified as follows how these functions work in the XMP/F
+programs when a global array appears as an argument.
+
+\begin{itemize}
+ \item Inquiry functions
+
+       The inquiry functions with a global array or its subobject
+       being an argument are regarded as inquiries about the global
+       array, and return its ``global'' properties as if it were not
+       distributed.
+
+ \item Elemental functions
+
+       The result of the elemental functions with a global array or
+       its subobject being an argument has the same shape and
+       mapping as the argument.
+%
+       Note that such a reference of these elemental functions is in
+       effect limited to be in the {\tt array} construct.
+
+ \item Transformational functions
+
+       It is unspecified how the transformational functions work when a
+       global array or its subobject appears as an argument.
+%
+       A processor shall detect such a reference of these functions
+       and issue a warning message for it.
+%
+       Some intrinsic transformational subroutines are defined in
+       section \ref{112125_19Sep13} as alternatives to these
+       transformational functions.
+
+\end{itemize}
+
+
+\paragraph{Built-in Elemental Functions in {\XMPC}}
+\label{094142_25Sep13}
+\index{built-in elemental functions}
+
+Some built-in elemental functions that can operate each element of
+array arguments are defined in {\XMPC}. Such a built-in function
+accepts one or more array sections as its arguments and returns an
+array-valued result having the same shape and mapping as the argument.
+%
+The values of the elements of the result are the same as what would have
+been obtained if the scalar function of the C standard library had
+been applied separately to the corresponding elements of each array
+argument.
+
+These functions may appear on the right-hand side of an array
+assignment statement, and it should be preceded by the {\tt array}
+directive if the array section is distributed.
+
+Table \ref{tab:elemental_c} shows the list of built-in elemental
+functions in {\XMPC}. Their elementwise behavior is the same as those of
+the corresponding functions in the C standard library.
+
+\begin{table}[h]
+ \caption[Built-in elemental functions in {\XMPC}]{Built-in elemental
+ functions in {\XMPC}. (The first line refers to the element type of their
+ argument(s) and return value.)}
+ \label{tab:elemental_c}
+ \begin{center}
+ \begin{tabular}{c|c|c} \hline\hline
+ double & float & long double \\ \hline
+ acos & acosf & acosl \\
+ asin & asinf & asinl \\
+ atan & atanf & atanl \\
+ atan2 & atan2f & atan2l \\
+ cos & cosf & cosl \\
+ sin & sinf & sinl \\
+ tan & tanf & tanl \\
+
+% acosh & acoshf & acoshl \\
+% asinh & asinhf & asinhl \\
+% atanh & atanhf & atanhl \\
+ cosh & coshf & coshl \\
+ sinh & sinhf & sinhl \\
+ tanh & tanhf & tanhl \\
+
+ exp & expf & expl \\
+% exp2 & exp2f & exp2l \\
+% expm1 & expm1f & expm1l \\
+ frexp & frexpf & frexpl \\
+% ilogb & ilogbf & ilogbl \\
+ ldexp & ldexpf & ldexpl \\
+ log & logf & logl \\
+ log10 & log10f & log10l \\
+% log1p & log1pf & log1pl \\
+% log2 & log2f & log2l \\
+% logb & logbf & logbl \\
+%% modf & modff & modfl \\
+% scalbn & scalbnf & scalbnl \\
+% scalbln & scalblnf & scalblnl \\
+
+% cbrt & cbrtf & cbrtl \\
+ fabs & fabsf & fabsl \\
+% hypot & hypotf & hypotl \\
+ pow & powf & powl \\
+ sqrt & sqrtf & sqrtl \\
+
+% erf & erff & erfl \\
+% erfc & erfcf & erfcl \\
+% lgamma & lgammaf & lgammal \\
+% tgamma & tgammaf & tgammal \\
+
+ ceil & ceilf & ceill \\
+ floor & floorf & floorl \\
+% near byint near byintf near byintl \\
+% rint & rintf & rintl \\
+% lrint & lrintf & lrintl \\
+% llrint & llrintf & llrintl \\
+% round & roundf & roundl \\
+% lround & lroundf & lroundl \\
+% llround & llroundf & llroundl \\
+% trunc & truncf & truncl \
+
+ fmod & fmodf & fmodl \\ \hline
+% remainder & remainderf & remainderl \\
+% remquo & remquof & remquol \\
+%
+% copysign & copysignf & copysignl \\
+% nan & nanf & nanl \\
+% next after next afterf next afterl \\
+% next toward next towardf & next towardl \\
+%
+% fdim & fdimf & fdiml \\
+% fmax & fmaxf & fmaxl \\
+% fmin & fminf & fminl \\
+
+% fma & fmaf & fmal \\
+ \end{tabular} 
+ \end{center}
+\end{table}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Interoperability}
+
+Most of existing parallel applications are written with MPI. It is not
+realistic to port them over to XMP because each of them consists of
+millions of lines.
+
+Because XMP is interoperable with MPI, users can develop an XMP
+application by modifying a part of an existing one instead of rewriting
+it totally. Besides, when developing a parallel application from
+scratch, it is possible to use XMP to write a complicated part of, for
+example, domain decomposition while they use MPI, which could be faster
+than XMP, to write a hot-spot part that need to be tuned carefully. In
+addition, XMP is interoperable with OpenMP and Python (see Chapter
+\ref{python}).
+
+It might be difficult to develop an application with just one
+programming language or framework since it generally has its own strong
+and weak points. Thus, an XMP program is interoperable with those in
+other languages to provide both high productivity and performance.
