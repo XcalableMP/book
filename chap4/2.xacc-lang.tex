@@ -1,0 +1,242 @@
+\section{XcalableACC Language}
+
+{\XACC} is roughly defined as a diagonal integration of XMP
+and OpenACC with some additional XACC extensions, where XMP directives
+are for specifying distributed-memory parallelism, OpenACC for
+offloading, and the extensions for other XACC-specific features.
+
+The syntax and semantics of XMP and OpenACC directives appearing in XACC
+codes follow those in XMP and OpenACC, respectively, unless specified
+below.
+
+\subsection{Data Mapping}
+
+This chapter defines a behavior of mixing {\XMP} and {\OACC}.
+Note that the existing {\OACC} is not extended in the {\XMP} extensions.
+The {\XMP} extensions can represent 
+(1) parallelization with keeping sequential code image using a
+combination of {\XMP} and {\OACC}, 
+and
+(2) communication among accelerator memories and between accelerator
+memory and host memory on different {\bf nodes}
+using {\XACC} directives or {\bf coarray} features.
+
+% \subsection{Combination of {\XMP} and {\OACC}}
+
+% \subsubsection{{\OACC} Directives on Data}
+
+% \subsubsection*{Description}
+
+When {\bf distributed arrays} appear in {\OACC} constructs,
+global indices in {\bf distributed arrays} are used.
+The {\bf distributed arrays} may appear in the {\tt update}, {\tt enter
+data}, {\tt exit data}, 
+{\tt host\_data}, {\tt cache}, and {\tt declare} directives,
+and the {\tt data} clause accompanied by some of 
+{\tt deviceptr}, {\tt present}, {\tt copy}, {\tt copyin}, 
+{\tt copyout}, {\tt create}, and {\tt delete} clauses.
+Data transfer of {\bf distributed array} by {\OACC} is performed on only
+{\bf nodes} which have elements specified by the global indices.
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N), b(N)
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+!$xmp align b(i) with t(i)
+...
+!$acc enter data copyin(a(1:K))
+!$acc data copy(b)
+...
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a[N], b[N];
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+#pragma xmp align b[i] with t[i]
+...
+#pragma acc enter data copyin(a[0:K])
+#pragma acc data copy(b)
+{ ...
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\XMP} extensions with {\tt enter\_data}
+  directive}\label{code:ex-oacc-data}
+\end{myfigure}
+
+In lines 2-6 of Fig. \ref{code:ex-oacc-data},
+the directives declare the {\bf distributed arrays} {\it a} and {\it b}.
+In line 8,
+the {\tt enter data} directive transfers the certain range of the {\bf
+distributed array} {\it a} from host memory to accelerator memory. 
+Note that the range is represented by global indices.
+In line 9,
+the {\tt data} directive transfers the whole {\bf distributed array}
+{\it b} from host memory to accelerator memory. 
+
+
+\subsection{Work Mapping}
+
+\subsubsection*{Description}
+In order to perform a loop statement on accelerators in {\bf nodes} in parallel,
+{\XMP} {\tt loop} directive and {\OACC} {\tt loop} directive are used.
+While
+{\XMP} {\tt loop} directive performs a loop statement in {\bf nodes} in parallel,
+{\OACC} {\tt loop} directive also performs the loop statement
+parallelized by the {\XMP} {\tt loop} directive 
+on accelerators in parallel.
+For ease of writing,
+the order of {\XMP} {\tt loop} directive and {\OACC} {\tt loop} directive does not matter.
+
+When {\tt acc} clause appears in {\XMP} loop directive with {\tt reduction} clause,
+the directive performs a reduction operation for a variable specified in
+the {\tt reduction} clause on accelerator memory.
+
+\subsubsection*{Restriction}
+\begin{itemize}
+\item In {\OACC} {\bf compute region},
+only {\XMP} {\tt loop} directive without {\tt reduction} clause can be inserted.
+\item In {\OACC} {\bf compute region},
+targeted loop condition (lower bound, upper bound, and step of the loop)
+	  must remain unchanged. 
+\item {\tt acc} clause in {\XMP} loop directive can appear only when
+	  {\tt reduction} clause appears there.
+\end{itemize}
+
+\subsubsection*{Example 1}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N), b(N)
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+!$xmp align b(i) with t(i)
+...
+!$acc parallel loop copy(a, b)
+!$xmp loop on t(i)
+do i=0, N
+  b(i) = a(i)
+end do
+!$acc end parallel
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a[N], b[N];
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+#pragma xmp align b[i] with t[i]
+...
+#pragma acc parallel loop copy(a, b)
+#pragma xmp loop on t[i]
+for(int i=0;i<N;i++){
+  b[i] = a[i];
+}
+
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\XMP} extensions with {\OACC} loop
+  construct}\label{code:ex-oacc-loop}
+\end{myfigure}
+
+In lines 2-6 of Fig. \ref{code:ex-oacc-loop},
+the directives declare {\bf distributed arrays} {\it a} and {\it b}.
+In line 8,
+the {\tt parallel} directive with the {\tt data} clause transfers the
+{\bf distributed arrays} {\it a} and {\it b} from host memory to
+accelerator memory.
+Moreover,
+in lines 8-9,
+the {\tt parallel} directive and {\XMP} {\tt loop} directive perform the
+next loop statement on accelerators in {\bf nodes} in parallel.
+
+\subsubsection*{Example 2}
+\begin{myfigure}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N), sum = 10
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+...
+!$acc parallel loop copy(a, sum) reduction(+:sum)
+!$xmp loop on t(i) reduction(+:sum) acc
+do i=0, N
+  sum = sum + a(i)
+end do
+!$acc end parallel loop
+\end{XACCFexampleL}
+\begin{XACCCexampleL}
+int a[N], sum = 10;
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+...
+#pragma acc parallel loop copy(a, sum) reduction(+:sum)
+#pragma xmp loop on t[i] reduction(+:sum) acc
+for(int i=0;i<N;i++){
+  sum += a[i];
+}
+\end{XACCCexampleL}
+\end{center}
+\caption{Code example in {\XMP} extensions with {\OACC} loop construct
+  with reduction clause}\label{code:ex-oacc-loop-reduction}
+\end{myfigure}
+
+In lines 2-5 of Fig. \ref{code:ex-oacc-loop-reduction},
+the directives declare {\bf distributed array} {\it a}.
+In line 7,
+the {\tt parallel} directive with the {\tt data} clause transfers the
+{\bf distributed array} {\it a} and variable {\bf sum} from host memory
+to accelerator memory.
+Moreover,
+in lines 7-8,
+the {\tt parallel} directive and {\XMP} {\tt loop} directive perform the
+next loop statement on accelerators in {\bf nodes} in parallel.
+When finishing the calculation of the loop statement,
+OpenACC {\tt reduction} clause and {\XMP} {\tt reduction} and {\tt acc}
+clauses in lines 7-8 perform a reduction operation for the variable {\bf
+sum} on accelerators in {\bf nodes}.
+
+
+\subsection{Data Communication and Synchronization}
+
+\subsubsection{{\tt acc} clause}
+
+\subsubsection{Coarray}
+
+\subsection{Handling Multiple Accelerators}
+
+ -- devices Directive
+
+ -- on\_device Clause
+
+ -- layout Clause
+
+ -- shadow Clause
+
+ -- barrier\_device Construct

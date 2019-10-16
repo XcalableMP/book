@@ -30,6 +30,7 @@
 \usepackage[dvipdfmx]{graphicx}  % for EPS and PDF 
 % \usepackage{url}
 \usepackage{fancyvrb}
+\usepackage{multirow}
 % \usepackage{makeidx}
 % \usepackage{float}
 % \usepackage[dvipdfmx]{color}
@@ -235,9 +236,7 @@ and direct communication between accelerators.
 \input{1.intro.tex} \cleardoublepage
 \input{2.xacc-lang.tex} \cleardoublepage
 \input{3.omni-xacc.tex} \cleardoublepage
-
-%\input{2.xmp-ex.tex} \cleardoublepage
-%\input{3.acc-ex.tex} \cleardoublepage
+\input{4.performance-qcd.tex} \cleardoublepage
 %\input{glossary.tex}
 
 % \cleardoublepage
@@ -266,6 +265,14 @@ and direct communication between accelerators.
  \bibitem{xmp} XcalableMP Language Specification, \url{http://xcalablemp.org/specification.html} (2017).
  \bibitem{openacc} The OpenACC Application Programming Interface, \url{http://www.openacc.org} (2015).
  \bibitem{mpi} MPI: A Message-Passing Interface Standard, \url{http://mpi-forum.org} (2015).
+ \bibitem{bridge++} Lattice QCD code Bridge++, \url{http://bridge.kek.jp/Lattice-code/index\_e.html}.
+ \bibitem{PhysRevD.10.2445} Wilson, K. G., ``Confinement of quarks'' (1974).
+ \bibitem{hapacs} HA-PACS, \url{https://www.ccs.tsukuba.ac.jp/supercomputer/}.
+ \bibitem{2013tabuchi} Akihiro Tabuchi et al, ``A Source-to-Source OpenACC Compiler for CUDA'', Euro-Par Workhops (2013)
+ \bibitem{nakao2014} Masahiro Nakao et al. ``XcalableACC: Extension of XcalableMP PGAS Language Using OpenACC for Accelerator Clusters'',
+   Proceedings of the First Workshop on Accelerator Programming Using Directives (2014)
+ \bibitem{CGPOP2011} Andrew I. Stone et al. ``Evaluating Coarray Fortran with the CGPOP Miniapp'',
+   Proceedings of the Fifth Conference on Partitioned Global Address Space Programming Models (2011)
 \end{thebibliography}
 
 \end{document}
