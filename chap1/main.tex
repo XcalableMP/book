@@ -82,6 +82,12 @@ stringstyle={\small\ttfamily},
 
 %\newenvironment{myfigure}{\begin{figure}[ht]\begin{center}}{\end{center}\end{figure}}
 
+\newenvironment{mynote}{\vspace{1zw}\noindent\hrulefill\\\noindent {\bf Note}:}
+{\\\noindent\hrulefill\\}
+
+\newenvironment{myhint}{\vspace{1zw}\noindent\hrulefill\\\noindent {\bf Hint}:}
+{\\\noindent\hrulefill\\}
+
 \def\Directive#1{{\tt #1}\index{#1@{\tt #1}}\index{Directive!#1@{\tt #1}}}
 
 %\def\Syntax#1{\index{{\tt #1}}\index{Syntax!{\tt #1}}}
@@ -119,6 +125,10 @@ frame=single,label=MPI C}
 \DefineVerbatimEnvironment{MPIFexample}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
 frame=single,label=MPI Fortran}
 
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+\setcounter{totalnumber}{6}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
@@ -132,7 +142,7 @@ frame=single,label=MPI Fortran}
 
 \institute{
 Hitoshi Murai \at RIKEN Center for Computational Science, 7-1-26
-Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan
+Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan,
 \email{h-murai@riken.jp}
 \and
 Masahiro Nakao \at RIKEN Center for Computational Science,
@@ -140,7 +150,7 @@ Masahiro Nakao \at RIKEN Center for Computational Science,
 \email{masahiro.nakao@riken.jp}
 \and
 Mitsuhisa Sato \at RIKEN Center for Computational Science, 7-1-26
-Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan
+Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan,
 \email{msato@riken.jp}
 }
 

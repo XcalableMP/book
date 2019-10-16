@@ -1,4 +1,4 @@
-\section{Data Mapping}
+\section{Data Mapping Directives}
 
 \subsection{{\tt nodes} Directive}
 
@@ -34,12 +34,10 @@ nodes. In XMP/C, the node set consists of p[0][0], p[0][1], p[0][2],
 p[1][0], p[1][1], and p[1][2]. In XMP/Fortran, the node set consists of
 p(1,1), p(2,1), p(3,1), p(1,2), p(2,2), and p(3,2).
 
-\noindent\hrulefill
-
-\noindent {\bf Note}: The ordering of the elements in a node set depends
-on the base language, C and Fortran.
-
-\noindent\hrulefill
+\begin{mynote}
+  The ordering of the elements in a node set depends on the base
+  language, C and Fortran. 
+\end{mynote}
 
 \subsubsection{Dynamic Node Set}
 
@@ -72,20 +70,14 @@ asterisk symbol.
 When the user runs the sample program with 12 nodes, the node set p will
 have a shape of [4][3] in C, and (3,4) in Fortran.
 
-\noindent\hrulefill
+\begin{mynote}
+The user can use only one asterisk symbol in the last dimension of the node set.
+\end{mynote}
 
-\noindent {\bf Note}: The user can use only one asterisk symbol in the
-last dimension of the node set.
-
-\noindent\hrulefill
-
-\noindent\hrulefill
-
-\noindent {\bf Hint}: The dynamic node set may interfere with compiler
-optimizations. Static node sets may achieve better performance in
-general.
-
-\noindent\hrulefill
+\begin{myhint}
+The dynamic node set may interfere with compiler optimizations. Static
+node sets may achieve better performance in general.
+\end{myhint}
 
 \subsubsection{Partial Node Set}
 
@@ -149,17 +141,11 @@ context. In XMP/Fortran, both p(1,1) and p(2,1) will be
 row(1). Likewise, p(1,1), p(1,2), p(1,3) and p(1,4) will be col(1) in
 each context.
 
-\noindent\hrulefill
-
-\noindent {\bf Note}: The syntactic meaning of asterisk symbols in the
+\begin{mynote}
+The syntactic meaning of asterisk symbols in the
 node set references are different when declaring a node set and regular
 expressions in on clauses.
-
-\noindent\hrulefill
-
-
-
-
+\end{mynote}
 
 
 \subsection{{\tt template} Directive}
@@ -182,12 +168,10 @@ The template directive declares 1-dimensional template t which has 10
 elements. In XMP/C, each element has an unique index from t[0] to
 t[9]. Likewise, in XMP/Fortran, the index starts from t(1) to t(10).
 
-\noindent\hrulefill
-
-{\bf Hint}: In general, the user declare templates which has the same
+\begin{myhint}
+In general, the user declare templates which has the same
 size with the target data array where data/work mapping is done.
-
-\noindent\hrulefill
+\end{myhint}
 
 In XMP/Fortran, the start index of the template can be given by an
 arbitrary number to match the starting array index in the base
@@ -199,13 +183,10 @@ language.
 
 The template directive declares 1-dimensional template t starting from t(-5) to t(4).
 
-\noindent\hrulefill
-
-{\bf Note}: In XMP/C, templates should start from 0 since array indices
+\begin{mynote}
+In XMP/C, templates should start from 0 since array indices
 start from 0 in the C language.
-
-\noindent\hrulefill
-
+\end{mynote}
 
 \subsubsection{Multi-dimensional Template}
 
@@ -261,12 +242,10 @@ the chunk size of each block will be ceil(N/K). For example, block
 distribution is useful for stencil computation which refers to
 neighborhood elements.
 
-\noindent\hrulefill
-
-{\bf Note}: Function ceil(x) returns the minimum integer value which is
+\begin{mynote}
+Function ceil(x) returns the minimum integer value which is
 greater than x.
-
-\noindent\hrulefill
+\end{mynote}
 
 \begin{XCexample}
 #pragma xmp nodes p[3]
@@ -715,11 +694,9 @@ a {\tt template\_fix} construct. Finally, allocate the array with the
 {\tt xmp\_malloc()} builtin function in XMP/C and the allocate statement in
 XMP/Fortran.
 
-\noindent\hrulefill
-
+\begin{mynote}
 {\bf Note}: {\tt template\_fix} constructs can be applied to a template only once.
-
-\noindent\hrulefill
+\end{mynote}
 
 The {\tt template\_fix} construct can also be used to define a mapping array of
 a template that is distributed in “gblock(*)” at declaration.

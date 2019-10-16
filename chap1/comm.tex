@@ -1,4 +1,4 @@
-\section{Data Communication}
+\section{Data Communication Directives}
 
 \subsection{{\bf shadow} Directive / {\bf reflect} Construct}
 
@@ -45,11 +45,9 @@ real :: a(16)
 
 In the figure above, colored elements are those that each node owns and white ones are shadow.
 
-\noindent\hrulefill
-
-\noindent {\bf Note}: Distributed arrays in a cyclic manner cannot have shadow.
-
-\noindent\hrulefill
+\begin{mynote}
+Distributed arrays in a cyclic manner cannot have shadow.  
+\end{mynote}
 
 \paragraph{Widths of lower/upper bounds are different}
 
@@ -155,21 +153,17 @@ bound is updated.
   \includegraphics{figs/reflect_width.png}
 \end{figure}
 
-\noindent\hrulefill
-
-\noindent {\bf Note}: If the widths of the shadow areas to be updated on
+\begin{mynote}
+If the widths of the shadow areas to be updated on
 the upper and lower 
 bounds are equal, that is, for example, width(1:1), you can abbreviate
 it as width(1).
+\end{mynote}
 
-\noindent\hrulefill
-
-\noindent\hrulefill
-
-\noindent {\bf Note}: It is not possible to update the shadow area on a
+\begin{mynote}
+It is not possible to update the shadow area on a
 particular node. 
-
-\noindent\hrulefill
+\end{mynote}
 
 If no shadow area is specified on the lower bound, the reflect directive
 does not update it with or without a width clause. The below figure
@@ -213,14 +207,12 @@ sends an element a(1) to the shadow area on the upper bound on node
 p(4), and p(4) sends a(16) to the shadow area on the lower bound on
 p(1).
 
-\noindent\hrulefill
-
-\noindent {\bf Note}: If the widths of the shadow areas to be updated on
+\begin{mynote}
+If the widths of the shadow areas to be updated on
 the upper and lower 
 bounds are equal, as shown by width(/periodic/1:1) in the above example,
 you can abbreviate it as width(/periodic/1).
-
-\noindent\hrulefill
+\end{mynote}
 
 \subsubsection{Multi-dimensional Shadow}
 
@@ -277,13 +269,11 @@ construct.
   \includegraphics{figs/multi_orthogonal.png}
 \end{figure}
 
-\noindent\hrulefill
-
-\noindent {\bf Note}: The orthogonal clause is effective only for arrays
+\begin{mynote}
+The orthogonal clause is effective only for arrays
 more than one 
 dimension of which is distributed.
-
-\noindent\hrulefill
+\end{mynote}
 
 Besides, you can also add shadow areas to only specified dimension.
 
@@ -414,14 +404,12 @@ p[2]. Each element of p[2] and p[3] will be copied locally. Similarly,
 in XMP/Fortran, p(1) sends b(1) and b(5) to p(3) and p(4). p(2) sends
 b(2) to p(3). Each element of p(3) and p(4) will be copied locally.
 
-\noindent\hrulefill
-
-\noindent {\bf Note}: If the number of elements specified on the
-right-hand side is other than
-1, it will not work properly if the number of elements differs between
-the right-hand side and the left-hand side.
-
-\noindent\hrulefill
+\begin{mynote}
+If the number of elements specified on the
+right-hand side is other than one, it will not work properly if the
+  number of elements differs between the right-hand side and the
+  left-hand side.
+\end{mynote}
 
 By using this method, the shape of a distributed array can be changed
 during calculation.
@@ -773,25 +761,21 @@ ior
 ieor
 \end{XFexample}
 
-\noindent\hrulefill
-
-\noindent {\bf Note}: Since the reduction clause needs a loop statement,
+\begin{mynote}
+Since the reduction clause needs a loop statement,
 operators of
 firstmax, firstmin, lastmax, and lastmin are required. But, since the
 reduction directive does not need a loop statement, there are no such
 operators.
+\end{mynote}
 
-\noindent\hrulefill
-
-\noindent\hrulefill
-
-\noindent {\bf Note}: Similar to the reduction clause, the reduction
+\begin{mynote}
+Similar to the reduction clause, the reduction
 directive may have
 slightly different results from sequential execution and parallel
 execution, because of depending on the calculation order when the
 reduction variable is a floating-point type.
-
-\noindent\hrulefill
+\end{mynote}
 
 
 \subsection{{\bf bcast} Construct}
@@ -894,23 +878,18 @@ value as the async clause is specified. Therefore, between the bcast
 directive and the wait\_async directive, you can not operate on the
 variable specified in the bcast directive.
 
-\noindent\hrulefill
-
-\noindent {\bf Hint}: By performing calculations without a dependency
+\begin{myhint}
+By performing calculations without a dependency
 relationship with the variable specified by the bcast directive after
 the bcast directive, overlap of communication and calculation can be
 performed, so the total calculation time may be small.
+\end{myhint}
 
-\noindent\hrulefill
-
-\noindent\hrulefill
-
-\noindent {\bf Note}: Values that can be specified for async clause are
+\begin{mynote}
+Values that can be specified for async clause are
 int type in XMP/C, and
 integer type in XMP/Fortran.
-
-\noindent\hrulefill
-
+\end{mynote}
 
 \subsection{{\bf reduce\_shadow} Construct}
 
