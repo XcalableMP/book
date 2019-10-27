@@ -1,0 +1,23 @@
+<<<<<<< HEAD
+=======
+# Makefile for macAir:~/Project/XMPBook/book/chap3/
+
+>>>>>>> dfe17d41a0c2d8d11a639d058b196463ac94fdb1
+main.pdf : main.dvi
+	dvipdfmx main.dvi
+
+main.dvi : clean
+	platex main
+	platex main
+	platex main
+
+clean:
+<<<<<<< HEAD
+	rm -f  *~ *.aux *.log *.idx *.ind *.ilg *.lot *.lof *.toc *.dvi *.ps 
+=======
+	rm -f  *~ *.aux *.log *.idx *.ind *.ilg *.lot *.lof *.toc *.dvi *.ps *.thm
+>>>>>>> dfe17d41a0c2d8d11a639d058b196463ac94fdb1
+
+clean-all : clean
+	rm -f *.pdf
+
