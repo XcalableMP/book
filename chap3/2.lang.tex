@@ -1,40 +1,54 @@
-\section{Language Specifications and the Key of the Implementation}\label{sec:lang}
+\section{Coarray Features and the Key of the Implementation}\label{sec:lang}
 
 The XcalableMP/Fortran compiler supports a major part of coarray features defined in 
 Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
-$CO_SUM$, $CO_MAX$, $CO_MIN$ and $CO_BROADCAST$ defined in Fortran~2018 standard~\cite{F18} 
-were supported.
+{\em CO\_SUM}, {\em CO\_MAX}, {\em CO_MIN} and {\em CO_BROADCAST} defined in 
+Fortran~2018 standard~\cite{F18} were supported.
 
-This section introduces some coarray features and the issues toward the implementation.
+This section introduces the coarray features and the issues for implementation of 
+the coarray features.
 
-\subsection{Images in the context of XcalableMP}
-An {\em image} is a instance of a program. 
+\subsection{Images and Coarrays}
+An {\em image} is defined as a instance of a program. 
 Each image executes the same program and has its own data individually 
 (SPMD: Single Program/Multiple Data).
-As the default, data is private to each image and is not allowed to be accessed
-from the other images. {\em Coarray} is only the variable that is allowed to be
-accessed from the other images in the usual Fortran contexts.
+Each image has a different image index, which is one of $1, \cdots, n$, 
+where $n$ is the number of images. 
+While Fortran standard does not specify actually where each image is executed, 
+XcalableMP defines that the images are mapped in tern to the executing nodes. 
+Therefore, image $k$ is always executed simply on executing node $k$, 
+where $1 \leq k \leq n$ and 
+$n$ is the number of images and also the number of the executing nodes. 
 
-In XcalableMP laguage specification defines that the images are mapped 
-in tern to the nodes in the executing task.
-It means that the images are not always mapped to the entire nodes but mapped
-to the subset nodes. Coarrays that are declared in a subprogram to be executed 
-on a subset of nodes are mapped to the subset of nodes, and
-the $SYNC_IMAGES$ statement synchronizes among the subset of nodes.
+Note that the executing nodes can be a subset of the entire (initial) node set. 
+For example, two distinct node sets can execute two coarray subprograms concurrently.
+When the execution encounters a {\em TASK} directive specified with a subset of nodes,
+the set of executing images changes into its subset corresponding to the nodes.
+The number of images and my image number, which are given by inquire functions
+{\em num\_images} and {\em this\_image}, also match with the executing images.
+The {\em SYNC\_IMAGES} statement synchronizes in each set of executing nodes.
+Unless the {\em TASK} directives are used, coarray features are 
+compatible to the ones of the Fortran standard. 
 
-多重タスク実行がある場合、それぞれのタスクでcoarrayプログラムが原則として独立に実行される。
-あるタスクでallocateしたcoarrayは、そのタスクの有効範囲を超えない範囲で、
-タスクを実行するnode間で共有されるのが原則である。同期の範囲も原則としてその中である。
+#多重タスク実行がある場合、それぞれのタスクでcoarrayプログラムが原則として独立に実行される。
+#あるタスクでallocateしたcoarrayは、そのタスクの有効範囲を超えない範囲で、
+#タスクを実行するnode間で共有されるのが原則である。同期の範囲も原則としてその中である。
 
-\begin{description}
-\item[これを入れるかどうか]
-タスク実行のときのスタックの使い方、構文が入れ子なので同じレベルに戻ることができること。
-\end{description}
+これを入れるかどうか:
+\begin{itemize}
+\item The XcalableMP compiler manages these values in stack.
+\item タスク実行のときのスタックの使い方、構文が入れ子なので同じレベルに戻ることができること。
+\end{itemize}
 
 
-\subsection{Non-allocatable and allocatable coarrays}
+\subsubsection{Non-allocatable and allocatable coarrays}
 
-The coarray variables can be declared as scalar or array variables with the SAVE attribute
+Basically, variables are private to each image and cannot be accessed from 
+the other images without using intrinsic atomic procedures or global-view features.
+{\em Coarrays} are only the variables that are allowed to be
+accessed from the other images in the usual Fortran contexts. 
+
+Coarrays can be declared as scalar or array variables with the SAVE attribute
 (the static attribute of C) as follows:
 
 \begin{verbatim}
@@ -42,12 +56,13 @@ The coarray variables can be declared as scalar or array variables with the SAVE
       type(user_defined_type), save :: s[2,2,*]
 \end{verbatim}
 
-The square bracket notation in the declaration distingishes coarray variables from the usual 
-(non-coarray) variables. It declares the virtual shape of the images and the last dimension 
-must be defferred (as `*').
-This type of coarrays are called as {\em non-allocatable coarrays}. 
+The square bracket notation in the declaration distingishes coarray variables from 
+the others (non-coarrays). It declares the virtual shape of the images and the last 
+dimension must be defferred (as `*').
+This type of coarrays above are called as {\em non-allocatable coarrays}. 
 
-Alternatively, coarrays can be declared as {\em allocatable coarrays} with the following form:
+Alternatively, coarrays can be declared as {\em allocatable coarrays} with the 
+following form:
 
 \begin{verbatim}
       real(8), allocatable :: b(:,:)[:]
@@ -81,41 +96,69 @@ registrationコストの削減のためには、すべてのnon-allocatable coar
 
 \subsection{Communication}
 
-one-sidedとcollectiveとatomicの３つ。
+Coarray features include three types of communications between images, i.e.,
+\begin{itemize}
+\item reference and definition to remote coarrays (GET and PUT communication),
+\item collective communication (intrinsic subroutines {\em CO\_SUM}, {\em CO\_MAX}, 
+{\em CO_MIN} and {\em CO_BROADCAST}), and
+\item atomic operations ({\em ATOMIC\_DEFINE} and {\em ATOMIC\_REF}).
+\end{itemize}
 
-\subsubsection{Get通信}
-
-イメージkにおけるcoarray変数aの値を参照するにはa[k]と記述する．これはイメージkからのGet通信を引き起こす．aが配列名の場合には配列の全要素に対する通信を意味する．aの部分配列を得るには配列記述を使ってa( :, j1:j2 )[k]などと書くこともできる．これらはcoindexed objectと呼ばれる．
-coindexed objectの参照によって起こる通信は一般に連続データであるとは限らない．部分配列の場合はもちろん，配列名であっても形状引継ぎ配列（仮引数の一種）の場合には実引数次第で不連続になる．通信の高速化のためには，十分に長い範囲の連続性を実行時に抽出する必要がある．一般にノード間通信で立ち上がりレイテンシ時間がほぼ無視できるようになるデータ量は数千バイトのオーダーであることから，配列や部分配列の1次元め（Fortranでは1番左の添字）が連続であっても数千要素に満たない場合には，次元を跨いだ連続性まで抽出して，十分に長い連続データとして通信する技術が必要である．
-
-\subsubsection{Put通信}
-
-以下のようにcoindex objectと同じ形を代入文の左辺に書くと，Put通信の表現となる．
-      a [i] = 式
-この左辺式はcoindexed variableと呼ばれる．Get通信と同様，aは配列名にも部分配列にもなれるので，coindexed variableについても次元を跨いだ連続性の抽出が必要である．右辺式には任意のスカラ式または配列式が許されるため，右辺式データの連続性にも配慮しなければならない．高速な通信を実現するには，左辺と右辺で共通に連続な区間を検出してその単位で通信を反復するか，右辺データは連続区間にpackして左辺の連続区間を単位として通信を反復するなどの戦略が考えられる．
-
-\subsubsection{集団通信}
-
-XMP 1.0ではFortran2008仕様のCoarray機能までを使用範囲としているため，イメージ間のリダクション演算とブロードキャストを含まない．これらは必ず必要になると考えるので，Omni XMPではFortran2015で定義されている組込みサブルーチン$co_sum$, $co_max$, $co_min$と$co_broadcast$の一部の機能を実装した．
-ランタイムライブラリの実装は，下位通信層にMPIを使うなら，対応するMPI手続を呼ぶだけであるが，配列や部分配列のリダクション演算をcopy-in/outをできるだけ起こさないように効率よく実装するには，CAFトランスレータ側に工夫が必要である．
+Omni compiler implements the latter two communications using the corresponding 
+functions in MPI. The rest of this section describes the former communication.
 
 
+\subsubsection{GET communication}
+
+GET communication is caused by referencing the {\em coindexed object}, 
+which is represented by a coarray variable with cosubscripts enclosed by square brackets, 
+e.g., $s[1,2]$ and $a(i,j)[k]$, where $s$ and $a$ are scalar and two-dimentional array coarrays,
+respectively.
+Coindexed objects can appear in most expressions.
+
+coindexed objectの参照は、$a(:,:)[k]$や$a(2:N-1,1:N)[k]$のように全体配列や部分配列になることも
+でき、一般に連続であるとは限らない。全体配列であっても形状引継ぎ配列の場合には不連続かもしれない。
+一般にこの連続部分の長さは実行時でなければ分からない。
+通信の高速化のためには，十分に長い範囲の連続性を実行時に抽出する必要がある．
+一般にノード間通信で立ち上がりレイテンシ時間がほぼ無視できるようになるデータ量は
+数千バイトであることから，配列や部分配列の1次元め（Fortranでは1番左の添字）が
+連続であっても数千要素に満たない場合には，次元を跨いだ連続性まで抽出して，
+十分に長い連続データとして通信する技術が必要である．
+【fx100-latencyのグラフから数千バイトを言ってもよい。】
 
 
-\subsection{Array Notation and Contiguity}
-MPIとくらべたcoarrayの優位性はarray sectionを効率よく表現できることだ。
-Fortran 90 以降Fortranに導入された配列式、配列代入の機能はそのまま
-coarray put/get communicationの表記に活かされている。
-つまりarray sectionはデータの部分を表現するとともに通信の範囲やパターンを表現する。
-MPIでは後者はMPI\_typeなどを使って次元毎に再帰的に表現し直さなければならない。
+【右辺式がcoindexed objectのとき最適化できる。】
 
-また、RDMA可能かどうかはコンパイラとruntime上位で判断できる。
 
-これを効率よく実装する方法については次の章で。
+\subsubsection{PUT communication}
+
+PUT communication is caused by an assignment statement with a {\em coindexed variable} 
+as the left-hand side expression, e.g.,
+\begin{verbatim}
+      a(i,j)[k] = b(i,j) + c(i,j)
+\end{verbatim}
+
+Get通信と同様，a(i,j)[k]は代わりに全体配列にも部分配列にもなれるので，
+coindexed variableについても次元を跨いだ連続性の抽出が必要である．
+それに加えて、ローカル側、すなわち、右辺式データの連続性も意識に入れなければならない。
+高速な通信を実現するには，左辺と右辺で共通に連続な区間を検出してその単位で通信を反復するか，
+右辺データは連続区間にpackして左辺の連続区間を単位として通信を反復するなどの戦略がある。
+
 
 
 \subsection{Argument Passing}
-coarray変数の引数渡しをトランスレータ方式で実現するには大きな選択肢があった．coarray変数を1つの記述子に変換し，記述子を通して実体のアドレスとその他の情報を取り出せるようにすれば，引数渡しは記述子の受渡しだけとなる．しかしその場合には，データ実体がFortranシステムから見えなくなるので，dopeベクトルも我々が生成・管理しなければならない．そして，サブプログラム内でのcoarray変数の通常の参照・定義に対して，dopeベクトルを使ったインデックスの計算式をソース-to-ソースで組み上げるか，実行時ライブラリ呼出しに変換しなければならない．これは大きな性能低下が予想される．我々は，coarray変数を同じ形状をもつ非coarray変数に変換することで，Fortranシステムのdopeベクトルの仕組みをそのまま使う方法を採った．その結果新しく生じた課題については3.3節で議論する．
+@@@
+coarray変数の引数渡しをトランスレータ方式で実現するには大きな選択肢があった．
+coarray変数を1つの記述子に変換し，記述子を通して実体のアドレスとその他の情報を取り出せるようにすれば，
+引数渡しは記述子の受渡しだけとなる．しかしその場合には，
+データ実体がFortranシステムから見えなくなるので，dopeベクトルも我々が生成・管理しなければならない．
+そして，サブプログラム内でのcoarray変数の通常の参照・定義に対して，
+dopeベクトルを使ったインデックスの計算式をソース-to-ソースで組み上げるか，
+実行時ライブラリ呼出しに変換しなければならない．
+これは大きな性能低下が予想される．
+我々は，coarray変数を同じ形状をもつ非coarray変数に変換することで，
+Fortranシステムのdopeベクトルの仕組みをそのまま使う方法を採った．
+その結果新しく生じた課題については3.3節で議論する．
 
 
 \subsection{Loose synchronization}

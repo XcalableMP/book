@@ -1,5 +1,14 @@
 \section{Compiler Implementation for high performance}\label{sec:compiler}
 
+MPIとくらべたcoarrayの優位性はarray sectionを効率よく表現できることだ。
+Fortran 90 以降Fortranに導入された配列式、配列代入の機能はそのまま
+coarray put/get communicationの表記に活かされている。
+つまりarray sectionはデータの部分を表現するとともに通信の範囲やパターンを表現する。
+MPIでは後者はMPI\_typeなどを使って次元毎に再帰的に表現し直さなければならない。
+
+また、RDMA可能かどうかはコンパイラとruntime上位で判断できる。
+
+
 
 \subsubsection{static coarrayの高速化}
 
