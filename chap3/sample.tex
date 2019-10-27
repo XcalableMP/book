@@ -1,0 +1,867 @@
+\section{{\XMP} Extensions}\label{chap:xmp-ex}
+
+This chapter defines a behavior of mixing {\XMP} and {\OACC}.
+Note that the existing {\OACC} is not extended in the {\XMP} extensions.
+The {\XMP} extensions can represent 
+(1) parallelization with keeping sequential code image using a
+combination of {\XMP} and {\OACC}, 
+and
+(2) communication among accelerator memories and between accelerator
+memory and host memory on different {\bf nodes}
+using {\XACC} directives or {\bf coarray} features.
+
+\subsection{Combination of {\XMP} and {\OACC}}
+
+\subsubsection{{\OACC} Directives on Data}
+
+\subsubsection*{Description}
+
+When {\bf distributed arrays} appear in {\OACC} constructs,
+global indices in {\bf distributed arrays} are used.
+%Thus,
+%an {\XACC} compiler automatically translates the global indices in the {\OACC} constructs to the appropriate local indices.
+The {\bf distributed arrays} may appear in the {\tt update}, {\tt enter data}, {\tt exit data}, 
+{\tt host\_data}, {\tt cache}, and {\tt declare} directives,
+and the {\tt data} clause accompanied by some of 
+{\tt deviceptr}, {\tt present}, {\tt copy}, {\tt copyin}, 
+{\tt copyout}, {\tt create}, and {\tt delete} clauses.
+Data transfer of {\bf distributed array} by {\OACC} is performed on only {\bf nodes} which have elements specified by the global indices.
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N), b(N)
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+!$xmp align b(i) with t(i)
+...
+!$acc enter data copyin(a(1:K))
+!$acc data copy(b)
+...
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a[N], b[N];
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+#pragma xmp align b[i] with t[i]
+...
+#pragma acc enter data copyin(a[0:K])
+#pragma acc data copy(b)
+{ ...
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\XMP} extensions with {\tt enter\_data} directive}\label{code:ex-oacc-data}
+\end{myfigure}
+
+In lines 2-6 of Fig. \ref{code:ex-oacc-data},
+the directives declare the {\bf distributed arrays} {\it a} and {\it b}.
+In line 8,
+the {\tt enter data} directive transfers the certain range of the {\bf distributed array} {\it a} from host memory to accelerator memory.
+Note that the range is represented by global indices.
+In line 9,
+the {\tt data} directive transfers the whole {\bf distributed array} {\it b} from host memory to accelerator memory.
+
+\subsubsection{{\OACC} Loop Construct}
+
+\subsubsection*{Description}
+In order to perform a loop statement on accelerators in {\bf nodes} in parallel,
+{\XMP} {\tt loop} directive and {\OACC} {\tt loop} directive are used.
+While
+{\XMP} {\tt loop} directive performs a loop statement in {\bf nodes} in parallel,
+{\OACC} {\tt loop} directive also performs the loop statement parallelized by the {\XMP} {\tt loop} directive 
+on accelerators in parallel.
+For ease of writing,
+the order of {\XMP} {\tt loop} directive and {\OACC} {\tt loop} directive does not matter.
+
+When {\tt acc} clause appears in {\XMP} loop directive with {\tt reduction} clause,
+the directive performs a reduction operation for a variable specified in the {\tt reduction} clause on accelerator memory.
+
+\subsubsection*{Restriction}
+\begin{itemize}
+\item In {\OACC} {\bf compute region},
+only {\XMP} {\tt loop} directive without {\tt reduction} clause can be inserted.
+\item In {\OACC} {\bf compute region},
+targeted loop condition (lower bound, upper bound, and step of the loop) must remain unchanged.
+\item {\tt acc} clause in {\XMP} loop directive can appear only when {\tt reduction} clause appears there.
+\end{itemize}
+
+\subsubsection*{Example 1}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N), b(N)
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+!$xmp align b(i) with t(i)
+...
+!$acc parallel loop copy(a, b)
+!$xmp loop on t(i)
+do i=0, N
+  b(i) = a(i)
+end do
+!$acc end parallel
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a[N], b[N];
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+#pragma xmp align b[i] with t[i]
+...
+#pragma acc parallel loop copy(a, b)
+#pragma xmp loop on t[i]
+for(int i=0;i<N;i++){
+  b[i] = a[i];
+}
+
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\XMP} extensions with {\OACC} loop construct}\label{code:ex-oacc-loop}
+\end{myfigure}
+
+In lines 2-6 of Fig. \ref{code:ex-oacc-loop},
+the directives declare {\bf distributed arrays} {\it a} and {\it b}.
+In line 8,
+the {\tt parallel} directive with the {\tt data} clause transfers the {\bf distributed arrays} {\it a} and {\it b} from host memory to accelerator memory.
+Moreover,
+in lines 8-9,
+the {\tt parallel} directive and {\XMP} {\tt loop} directive perform the next loop statement on accelerators in {\bf nodes} in parallel.
+
+\subsubsection*{Example 2}
+\begin{myfigure}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N), sum = 10
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+...
+!$acc parallel loop copy(a, sum) reduction(+:sum)
+!$xmp loop on t(i) reduction(+:sum) acc
+do i=0, N
+  sum = sum + a(i)
+end do
+!$acc end parallel loop
+\end{XACCFexampleL}
+\begin{XACCCexampleL}
+int a[N], sum = 10;
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+...
+#pragma acc parallel loop copy(a, sum) reduction(+:sum)
+#pragma xmp loop on t[i] reduction(+:sum) acc
+for(int i=0;i<N;i++){
+  sum += a[i];
+}
+\end{XACCCexampleL}
+\end{center}
+\caption{Code example in {\XMP} extensions with {\OACC} loop construct with reduction clause}\label{code:ex-oacc-loop-reduction}
+\end{myfigure}
+
+In lines 2-5 of Fig. \ref{code:ex-oacc-loop-reduction},
+the directives declare {\bf distributed array} {\it a}.
+In line 7,
+the {\tt parallel} directive with the {\tt data} clause transfers the {\bf distributed array} {\it a} and variable {\bf sum} from host memory to accelerator memory.
+Moreover,
+in lines 7-8,
+the {\tt parallel} directive and {\XMP} {\tt loop} directive perform the next loop statement on accelerators in {\bf nodes} in parallel.
+When finishing the calculation of the loop statement,
+OpenACC {\tt reduction} clause and {\XMP} {\tt reduction} and {\tt acc} clauses in lines 7-8 perform a reduction operation for the variable {\bf sum} on accelerators in {\bf nodes}.
+
+\subsection{Communication on Accelerated Clusters}
+\subsubsection{{\XACC} Directives}
+{\XACC} directives are extensions of {\tt reflect}, {\tt gmove}, 
+{\tt barrier}, {\tt reduction}, {\tt bcast}, and {\tt wait\_async} directives in {\XMP} global-view memory model.
+Moreover,
+{\tt reflect\_init} and {\tt reflect\_do} directives are added as extensions of the {\tt reflect} directive.
+{\XACC} directives are directives which are added an {\tt acc} clause to the above directives.
+{\XACC} directives transfer data stored on accelerator memory.
+Note that while XcalableACC {\tt gmove} directive described in Section \ref{sec:reflect} 
+and {\bf coarray} features described in Section \ref{sec:coarray} can perform communication both among accelerator memories and between accelerator memory and host memory on different {\bf nodes},
+other directives can perform communication only among accelerator memories.
+
+This section describes only the extended parts of {\XACC} directives from {\XMP} directives. 
+For other information, refer to the {\XMP} specification\cite{xmp}.
+
+\paragraph{reflect Construct}\label{sec:reflect}
+\subsubsection*{Synopsis}
+The {\tt reflect} construct assigns the value of a
+reflection source to the corresponding shadow object.
+
+\subsubsection*{Syntax}
+\begin{tabular}{ll}
+ \verb![F]! & \verb|!$xmp| {\tt reflect} \verb|(| {\it array-name}
+ {\openb}, {\it array-name}{\closeb}... \verb|)| {\bsquare} \\
+ &\hspace{0.1cm} {\bsquare} {\openb}{\tt width (} {\it reflect-width}
+     {\openb}, {\it reflect-width}{\closeb}... {\tt )}{\closeb}
+     {\openb}{\tt orthogonal}{\closeb}
+     {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\verb![C]! & \verb|#pragma xmp| {\tt reflect} \verb|(| {\it array-name}
+     {\openb}, {\it array-name}{\closeb}... \verb|)| {\bsquare} \\
+ &\hspace{0.1cm} {\bsquare} {\openb}{\tt width (} {\it reflect-width}
+     {\openb}, {\it reflect-width}{\closeb}... {\tt )}{\closeb}
+     {\openb}{\tt orthogonal}{\closeb}
+     {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\end{tabular}
+
+\vspace{1em}
+where {\it reflect-width} must be one of:
+\vspace{1em}
+
+\begin{tabular}{ll}
+ \hspace{0.5cm} & {\openb}{\tt /periodic/}{\closeb} {\it int-expr} \\
+                & {\openb}{\tt /periodic/}{\closeb} {\it int-expr} : {\it int-expr}
+\end{tabular}
+
+\subsubsection*{Description}
+When the {\tt acc} clause is specified,
+the {\tt reflect} construct updates each of the shadow object of the
+array specified by {\it array-name} on accelerator memory with the value of its corresponding
+reflection source.
+
+\subsubsection*{Restriction}
+\begin{itemize}
+ \item When the {\tt acc} clause is specified,
+   the arrays specified by the sequence of {\it array-name}'s must be allocated on accelerator memory.
+ \item This construct must not appear in {\OACC} {\bf compute region}.
+\end{itemize}
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N)
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+!$xmp shadow a(1)
+...
+!$acc enter data copyin(a)
+!$xmp reflect (a) acc
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a[N];
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+#pragma xmp shadow a[1]
+...
+#pragma acc enter data copyin(a)
+#pragma xmp reflect (a) acc
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\tt reflect} construct}\label{code:reflect}
+\end{myfigure}
+
+In lines 2-5 of Fig. \ref{code:reflect},
+the directives declare {\bf distributed array} {\it a}.
+In line 6, 
+the {\tt shadow} directive allocates shadow areas of the {\bf distributed array} {\it a}.
+In line 8,
+the {\tt enter data} directive transfers the {\bf distributed array} {\it a} with the shadow areas from host memory to accelerator memory.
+In line 9,
+the {\tt reflect} directive updates the shadow areas of the {\bf distributed array} {\it a} on accelerator memory between neighboring {\bf nodes}.
+
+\paragraph{reflect\_init and reflect\_do Constructs}\label{sec:gmove}
+\subsubsection*{Synopsis}
+Since the {\tt reflect\_init} construct performs the initialization processes of the {\tt reflect} construct,
+the {\tt reflect\_do} construct performs communication of the {\tt reflect} construct.
+
+\subsubsection*{Syntax}
+\begin{tabular}{ll}
+ \verb![F]! & \verb|!$xmp| {\tt reflect\_init} \verb|(| {\it array-name}
+ {\openb}, {\it array-name}{\closeb}... \verb|)| {\bsquare} \\
+ &\hspace{0.1cm} {\bsquare} {\openb}{\tt width (} {\it reflect-width}
+     {\openb}, {\it reflect-width}{\closeb}... {\tt )}{\closeb}
+     {\openb}{\tt orthogonal}{\closeb}
+     {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\verb![C]! & \verb|#pragma xmp| {\tt reflect\_init} \verb|(| {\it array-name}
+     {\openb}, {\it array-name}{\closeb}... \verb|)| {\bsquare} \\
+ &\hspace{0.1cm} {\bsquare} {\openb}{\tt width (} {\it reflect-width}
+     {\openb}, {\it reflect-width}{\closeb}... {\tt )}{\closeb}
+     {\openb}{\tt orthogonal}{\closeb}
+     {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\end{tabular}
+
+\vspace{1em}
+where {\it reflect-width} must be one of:
+\vspace{1em}
+
+\begin{tabular}{ll}
+ \hspace{0.5cm} & {\openb}{\tt /periodic/}{\closeb} {\it int-expr} \\
+                & {\openb}{\tt /periodic/}{\closeb} {\it int-expr} : {\it int-expr}
+\end{tabular}
+
+\vspace{1em}
+
+\begin{tabular}{ll}
+ \verb![F]! & \verb|!$xmp| {\tt reflect\_do} \verb|(| {\it array-name}
+ {\openb}, {\it array-name}{\closeb}... \verb|)| {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\verb![C]! & \verb|#pragma xmp| {\tt reflect\_do} \verb|(| {\it array-name}
+     {\openb}, {\it array-name}{\closeb}... \verb|)| 
+     {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\end{tabular}
+
+\subsubsection*{Description}
+The {\tt reflect} construct is divided into {\tt reflect\_init} and {\tt reflect\_do} constructs to improve performance like the MPI persistent communication\cite{mpi}.
+
+As a typical example, 
+if a {\tt reflect} construct is called repeatedly with the same condition in a loop statement, 
+inserting a {\tt reflect\_init} construct before the loop statement 
+and replacing the {\tt reflect} construct with a {\tt reflect\_do} construct will improve its performance
+because unneeded initialization processes are removed.
+
+\subsubsection*{Restriction}
+\begin{itemize}
+ \item When the {\tt acc} clause is specified,
+   the arrays specified by the sequence of {\it array-name}'s must be allocated on accelerator memory.
+ \item These constructs must not appear in {\OACC} {\bf compute region}.
+ \item The {\tt reflect\_init} directive must execute before the {\tt reflect\_init} directive executes.
+\end{itemize}
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N)
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+!$xmp shadow a(1)
+...
+!$acc enter data copyin(a)
+!$xmp reflect_init (a) acc
+...
+!$xmp reflect_do (a) acc
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a[N];
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+#pragma xmp shadow a[1]
+...
+#pragma acc enter data copyin(a)
+#pragma xmp reflect_init (a) acc
+...
+#pragma xmp reflect_do (a) acc
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\tt reflect\_init} and {\tt reflect\_do} constructs}\label{code:reflect_initdo}
+\end{myfigure}
+
+In lines 2-5 of Fig. \ref{code:reflect_initdo},
+the directives declare {\bf distributed array} {\it a}.
+In line 6,
+the {\tt shadow} directive allocates shadow areas of the {\bf distributed array} {\it a}.
+In line 8,
+the {\tt enter data} directive transfers the {\bf distributed array} {\it a} with the shadow areas from host memory to accelerator memory.
+In line 9,
+the {\tt reflect\_init} directive performs initialization processes for the {\tt reflect\_do} construct which targets the {\bf distributed array} {\it a}.
+In line 11,
+the {\tt reflect\_do} directive updates the shadow areas of the {\bf distributed array} {\it a} on accelerator memory between neighboring {\bf nodes}
+without its initialization processes.
+
+\paragraph{gmove Construct}\label{sec:gmove}
+\subsubsection*{Synopsis}
+The {\tt gmove} construct allows an assignment statement,
+which may cause communication, to be executed possibly in parallel by
+the executing {\bf nodes}.
+
+\subsubsection*{Syntax}
+\begin{tabular}{ll}
+\verb![F]! & \verb|!$xmp| {\tt gmove} {\openb}{\tt in} $\vert$ {\tt
+ out}{\closeb} {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\openb}({\it variable}){\closeb}{\closeb}\\
+\verb![C]! & \verb|#pragma xmp| {\tt gmove} {\openb}{\tt in} $\vert$ {\tt
+ out}{\closeb} {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\openb}({\it variable}){\closeb}{\closeb}\\
+\end{tabular}
+
+\subsubsection*{Description}
+\begin{itemize}
+ \item When the {\tt acc} clause is specified and the variable is not specified by {\it variable} in the parenthesis,
+variables of both sides in the assignment statement on accelerator memory are targeted.
+ \item When the {\tt acc} clause is specified and the variable is specified by {\it variable} in the parenthesis,
+the specified variable on accelerator memory is targeted, 
+and the unspecified variable on host memory is targeted.
+\end{itemize}
+
+\subsubsection*{Restriction}
+\begin{itemize}
+ \item The variables targeted on accelerator memory must be allocated on accelerator memory.
+ \item This construct must not appear in {\OACC} {\bf compute region}.
+\end{itemize}
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N), b(N)
+!$xmp template t(N)
+!$xmp nodes p(*)
+!$xmp distribute t(block) onto p
+!$xmp align a(i) with t(i)
+!$xmp align b(i) with t(i)
+...
+!$acc enter data copyin(a, b)
+!$xmp gmove acc
+  a(:) = b(:)
+
+!$xmp gmove acc(b)
+  a(:) = b(:)
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a[N], b[N];
+#pragma xmp template t[N]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+#pragma xmp align a[i] with t[i]
+#pragma xmp align b[i] with t[i]
+...
+#pragma acc enter data copyin(a, b)
+#pragma xmp gmove acc
+  a[:] = b[:];
+
+#pragma xmp gmove acc(b)
+  a[:] = b[:];
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\tt gmove} construct}\label{code:gmove}
+\end{myfigure}
+
+In lines 2-6 of Fig. \ref{code:gmove},
+the directives declare {\bf distributed arrays} {\it a} and {\it b}.
+In line 8,
+the {\tt enter data} directive transfers the {\bf distributed arrays} {\it a} and {\it b} from host memory to accelerator memory.
+In lines 9-10,
+the {\tt gmove} construct copies the whole {\bf distributed array} {\it b} to
+that of the {\bf distributed array} {\it a} on accelerator memories.
+In lines 12-13,
+the {\tt gmove} construct copies the whole {\bf distributed array} {\it b} on accelerator memory to
+that of the {\bf distributed array} {\it a} on host memory.
+
+\paragraph{barrier Construct}\label{sec:barrier}
+\subsubsection*{Synopsis}
+The {\tt barrier} construct specifies an explicit barrier
+at the point at which the construct appears.
+
+\subsubsection*{Syntax}
+\begin{tabular}{ll}
+\verb![F]! & \verb|!$xmp| {\tt barrier} {\openb}{\tt on} {\it nodes-ref}
+ $\vert${\it template-ref}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\verb![C]! & \verb|#pragma xmp| {\tt barrier} {\openb}{\tt on} {\it
+     nodes-ref} $\vert$ {\it template-ref}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\end{tabular}
+
+\subsubsection*{Description}
+\begin{itemize}
+ \item When the {\tt acc} clause is specified,
+the barrier construct blocks until all ongoing asynchronous operations on accelerators are completed.
+ \item When the {\tt acc} clause is not specified,
+the barrier construct does not guarantee that an ongoing asynchronous operation on accelerator is completed.
+\end{itemize}
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+!$xmp nodes p(*)
+...
+!$xmp barrier acc
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+#pragma xmp nodes p[*]
+...
+#pragma xmp barrier acc
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\tt barrier} construct}\label{code:barrier}
+\end{myfigure}
+
+In line 1,
+the {\tt nodes} directive defines {\tt node set} {\it p}.
+In line 3,
+the {\tt barrier} directive performs a barrier operation for accelerators on all {\bf node}.
+
+\paragraph{reduction Construct}\label{sec:reduction}
+\subsubsection*{Synopsis}
+The {\tt reduction} construct performs a reduction operation among {\bf nodes}.
+
+\subsubsection*{Syntax}
+\Syntax{reduction}
+
+\begin{tabular}{ll}
+\verb![F]! & \verb|!$xmp| {\tt reduction (} {\it reduction-kind} {\it
+  :} {\it variable} {\openb}, {\it variable} {\closeb}... {\tt )}
+ {\bsquare} \\
+ & \hspace{5cm} {\bsquare} {\openb}{\tt on} {\it node-ref} $\vert$ {\it
+     template-ref}{\closeb} {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\end{tabular}
+
+\vspace{0.5cm}
+where {\it reduction-kind} is one of:
+
+\begin{tabular}{ll}
+ \hspace{0.5cm} & {\tt +} \\
+ & {\tt *} \\
+% & {\tt -} \\
+ & {\tt .and.} \\
+ & {\tt .or.} \\
+ & {\tt .eqv.} \\
+ & {\tt .neqv.} \\
+ & {\tt max} \\
+ & {\tt min} \\
+ & {\tt iand} \\
+ & {\tt ior} \\
+ & {\tt ieor} \\
+\end{tabular}
+
+\vspace{0.5cm}
+
+\begin{tabular}{ll}
+ \hspace{-\parindent}
+ \verb![C]! & \verb|#pragma xmp| {\tt reduction (} {\it reduction-kind} {\it
+  :} {\it variable} {\openb}, {\it variable} {\closeb}... {\tt )}
+ {\bsquare} \\
+ & \hspace{5cm} {\bsquare} {\openb}{\tt on} {\it node-ref} $\vert$ {\it
+     template-ref}{\closeb} {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb} \\
+\end{tabular}
+\vspace{0.5cm}
+
+where {\it reduction-kind} is one of:
+
+\begin{tabular}{ll}
+ \hspace{0.5cm} & {\tt +} \\
+ & {\tt *} \\
+% & {\tt -} \\
+ & {\verb|&|} \\
+ & {\tt |} \\
+ & {\verb|^|} \\
+ & {\verb|&&|} \\
+ & {\tt ||} \\
+ & {\tt max} \\
+ & {\tt min} \\
+\end{tabular}
+
+\subsubsection*{Description}
+When the {\tt acc} clause is specified,
+the {\tt reduction} construct performs a type of
+reduction operation specified by {\it reduction-kind} for the specified
+local variables among the accelerators and 
+sets the reduction results to the variables on each of the accelerators.
+
+\subsubsection*{Restriction}
+\begin{itemize}
+ \item When the {\tt acc} clause is specified,
+   the variables specified by the sequence of {\it variable}'s must be allocated on accelerator memory.
+ \item This construct must not appear in {\OACC} {\bf compute region}.
+\end{itemize}
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a
+!$xmp nodes p(*)
+...
+!$acc enter data copyin(a)
+!$xmp reduction(+:a) acc
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a;
+#pragma xmp nodes p[*]
+...
+#pragma acc enter data copyin(a)
+#pragma xmp reduction(+:a) acc
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\tt reduction} construct}\label{code:reduction}
+\end{myfigure}
+
+In line 2,
+the {\tt nodes} directive defines {\bf node set} {\it p}.
+In line 4,
+the {\tt enter data} directive transfers the local variable {\it a} from host memory to accelerator memory.
+In line 5,
+the {\tt reduction} directive calculates a total value of the variable {\it a} stored on each accelerator
+memory in each {\bf node}.
+
+\paragraph{bcast Construct}\label{sec:bcast}
+\subsubsection*{Synopsis}
+The {\tt bcast} construct performs broadcast communication from a specified {\bf node}.
+
+\subsubsection*{Syntax}
+
+\begin{tabular}{ll}
+ \verb![F]! & \verb|!$xmp| {\tt bcast} \verb|(| {\it variable}
+ {\openb}, {\it variable}{\closeb}... \verb|)|
+ {\openb}{\tt from} {\it nodes-ref} $\vert$ {\it template-ref}{\closeb}
+ {\bsquare} \\
+ & \hspace{4.8cm} {\bsquare} {\openb}{\tt on} {\it nodes-ref}{\closeb}
+     $\vert$ {\it template-ref}{\closeb}
+     {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+
+ \verb![C]! & \verb|#pragma xmp| {\tt bcast} \verb|(| {\it variable}
+ {\openb}, {\it variable}{\closeb}... \verb|)|
+ {\openb}{\tt from} {\it nodes-ref}  $\vert$ {\it
+     template-ref}{\closeb} {\bsquare} \\
+ & \hspace{4.8cm} {\bsquare} {\openb}{\tt on} {\it nodes-ref} $\vert$ {\it
+     template-ref}{\closeb}
+ {\openb}{\tt async (} {\it async-id} {\tt )}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\end{tabular}
+
+\subsubsection*{Description}
+When the {\tt acc} clause is specified, 
+the values of the variables specified by the sequence of {\it variable}'s on accelerator memory
+(called {\bf broadcast variables}) are broadcasted
+from the {\bf node} specified by the {\tt from} clause (called the
+{\bf source node}) to each of the {\bf nodes} in the {\bf node set} specified
+by the {\tt on} clause. After executing this construct,
+the values of the {\bf broadcast variables} become the same as those in the {\bf source node}.
+
+\subsubsection*{Restriction}
+\begin{itemize}
+ \item When the {\tt acc} clause is specified,
+   the variables specified by the sequence of {\it variable}'s must be allocated on accelerator memory.
+ \item This construct must not appear in {\OACC} {\bf compute region}.
+\end{itemize}
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a
+!$xmp nodes p(*)
+...
+!$acc enter data copyin(a)
+!$xmp bcast(a) acc
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a;
+#pragma xmp nodes p[*]
+...
+#pragma acc enter data copyin(a)
+#pragma xmp bcast(a) acc
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\tt bcast} construct}\label{code:bcast}
+\end{myfigure}
+
+In line 2,
+the {\tt nodes} directive defines {\bf node set} {\it p}.
+In line 4,
+the {\tt enter data} directive transfers the local variable {\it a} from host memory to accelerator memory.
+In line 5,
+the {\tt bcast} directive broadcasts the variable {\it a} stored on accelerator memory to all {\it nodes}.
+
+\paragraph{wait\_async Construct}\label{sec:waitasync}
+\subsubsection*{Synopsis}
+The {\tt wait\_async} construct guarantees asynchronous
+communications specified by {\it async-id} are complete.
+
+\subsubsection*{Syntax}
+\begin{tabular}{ll}
+\verb![F]! & \verb|!$xmp| {\tt wait\_async ( {\it async-id} {\openb},
+ {\it async-id} {\closeb}...)} {\openb}{\tt on} {\it nodes-ref} $\vert$
+ {\it template-ref}{\closeb} {\openb}{\tt acc}{\closeb}\\
+\verb![C]! & \verb|#pragma xmp| {\tt wait\_async ( {\it async-id} {\openb},
+ {\it async-id} {\closeb}...)} {\openb}{\tt on} {\it nodes-ref} $\vert$
+ {\it template-ref}{\closeb} {\bsquare} \\
+& \hspace{13.5cm} {\bsquare} {\openb}{\tt acc}{\closeb}\\
+\end{tabular}
+
+\subsubsection*{Description}
+When the {\tt acc} clause is specified,
+the {\tt wait\_async} construct blocks and therefore
+statements following it are not executed until all of the asynchronous
+communications that are specified by {\it async-id}'s and issued on the accelerators in
+{\bf node set} specified by the {\tt on} clause are complete.
+
+\subsubsection*{Restriction}
+This construct must not appear in {\OACC} {\bf compute region}.
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a
+!$xmp nodes p(*)
+...
+!$acc enter data copyin(a)
+!$xmp reduction(+:a) acc async(1)
+...
+!$xmp wait_async(1) acc
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a;
+#pragma xmp nodes p[*]
+...
+#pragma acc enter data copyin(a)
+#pragma xmp reduction(+:a) acc async(1)
+...
+#pragma xmp wait_async(1) acc
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in {\tt wait\_async} construct}\label{code:waitasync}
+\end{myfigure}
+
+In line 2,
+the {\tt nodes} directive defines {\bf node set} {\it p}.
+In line 4,
+the {\tt enter data} directive transfers the local variable {\it a} from host memory to accelerator memory.
+In line 5,
+the {\tt reduction} directive performs asynchronously.
+In line 7,
+the {\tt wait\_async} construct blocks until the asynchronous reduction operation at line 5 is complete.
+
+\subsubsection{Coarray Features} \label{sec:coarray}
+\subsubsection*{Synopsis}
+{\XACC} can perform one-sided communication (put/get operations) for data on accelerator memory using {\bf coarray} features,
+which is based on {\XMP} local-view memory model.
+A combination of {\bf coarray} syntax and {\tt host\_data} construct enables communication between accelerators.
+
+\subsubsection*{Description}
+If {\bf coarrays} appear in {\tt use\_device} clause of any enclosing {\tt host\_data} construct, 
+communication targets data on the accelerator side. 
+{\bf Coarray} operations on accelerators are synchronized using the same synchronization functions in {\XMP}.
+
+\subsubsection*{Restriction}
+\begin{itemize}
+ \item Only {\tt declare} directive can declare a {\bf coarray} on accelerator memory.
+   For example,
+   {\tt enter data} and {\tt copy} directives cannot declare a {\bf coarray} on accelerator memory.
+ \item The {\bf coarray} syntax must not appear in {\OACC} {\bf compute region}.
+\end{itemize}
+
+\subsubsection*{Example}
+\begin{myfigure}
+\begin{minipage}{0.45\hsize}
+\begin{center}
+\begin{XACCFexampleL}
+integer :: a(N)[*]
+integer :: b(N)
+!$acc declare create(a, b)
+...
+if(this_image() == 1) then
+!$acc host_data use_device(a, b)
+  a(:)[2] = b(:)
+
+!$acc host_data use_device(a)
+  b(:) = a(:)[3]
+end if
+...
+sync all
+\end{XACCFexampleL}
+\end{center}
+\end{minipage}
+%
+\begin{minipage}{0.53\hsize}
+\begin{center}
+\begin{XACCCexampleR}
+int a[N]:[*];
+int b[N];
+#pragma acc declare create(a, b)
+...
+if(xmp_node_num() == 1){
+#pragma acc host_data use_device(a, b)
+  a[:]:[2] = b[:];
+
+#pragma acc host_data use_device(a)
+  b[:] = a[:]:[3];
+}
+...
+xmp_sync_all(NULL);
+\end{XACCCexampleR}
+\end{center}
+\end{minipage}
+\caption{Code example in coarray features}\label{code:coarray}
+\end{myfigure}
+
+In line 3 of Fig. \ref{code:coarray},
+the {\tt declare} directive declares a {\bf coarray} {\it a} and an array {\it b} on accelerator memory.
+In lines 6-7,
+{\bf node} 1 performs put operation, where
+the whole array {\it b} on accelerator memory in {\bf node} 1 is transferred to the {\bf coarray} {\it a} on accelerator memory in {\bf node} 2.
+In lines 9-10,
+{\bf node} 1 performs get operation, where
+the whole {\bf coarray} {\it a} on accelerator memory in {\bf node} 3 is transferred to the array {\it b} on host memory in {\bf node} 1.
+In line 13,
+the {\tt sync all} statement in {\XACCF} or the {\tt xmp\_sync\_all} function in {\XACCC} synchronizes all {\bf nodes} and guarantees completion of ongoing coarray operations.
+

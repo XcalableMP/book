@@ -1,0 +1,143 @@
+\section{Language Specifications and the Key of the Implementation}\label{sec:lang}
+
+The XcalableMP/Fortran compiler supports a major part of coarray features defined in 
+Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
+$CO_SUM$, $CO_MAX$, $CO_MIN$ and $CO_BROADCAST$ defined in Fortran~2018 standard~\cite{F18} 
+were supported.
+
+This section introduces some coarray features and the issues toward the implementation.
+
+\subsection{Images in the context of XcalableMP}
+An {\em image} is a instance of a program. 
+Each image executes the same program and has its own data individually 
+(SPMD: Single Program/Multiple Data).
+As the default, data is private to each image and is not allowed to be accessed
+from the other images. {\em Coarray} is only the variable that is allowed to be
+accessed from the other images in the usual Fortran contexts.
+
+In XcalableMP laguage specification defines that the images are mapped 
+in tern to the nodes in the executing task.
+It means that the images are not always mapped to the entire nodes but mapped
+to the subset nodes. Coarrays that are declared in a subprogram to be executed 
+on a subset of nodes are mapped to the subset of nodes, and
+the $SYNC_IMAGES$ statement synchronizes among the subset of nodes.
+
+多重タスク実行がある場合、それぞれのタスクでcoarrayプログラムが原則として独立に実行される。
+あるタスクでallocateしたcoarrayは、そのタスクの有効範囲を超えない範囲で、
+タスクを実行するnode間で共有されるのが原則である。同期の範囲も原則としてその中である。
+
+\begin{description}
+\item[これを入れるかどうか]
+タスク実行のときのスタックの使い方、構文が入れ子なので同じレベルに戻ることができること。
+\end{description}
+
+
+\subsection{Non-allocatable and allocatable coarrays}
+
+The coarray variables can be declared as scalar or array variables with the SAVE attribute
+(the static attribute of C) as follows:
+
+\begin{verbatim}
+      real(8), save :: a(100,100)[*]
+      type(user_defined_type), save :: s[2,2,*]
+\end{verbatim}
+
+The square bracket notation in the declaration distingishes coarray variables from the usual 
+(non-coarray) variables. It declares the virtual shape of the images and the last dimension 
+must be defferred (as `*').
+This type of coarrays are called as {\em non-allocatable coarrays}. 
+
+Alternatively, coarrays can be declared as {\em allocatable coarrays} with the following form:
+
+\begin{verbatim}
+      real(8), allocatable :: b(:,:)[:]
+      type(user_defined_type), allocatable :: t[:,:,:]
+\end{verbatim}
+
+割付けcoarrayはALLOCATE文を使って割付けて，DEALLOCATE文を使って解放することができる．
+Fortranでは，手続に局所的でsave属性を持たない割付け変数は，手続からの復帰時に割付け状態であると，
+自動的に解放される．CAFではcoarray変数についてもこの機能(automatinc deallocation)が要求されている．
+
+
+共通の制約として，これらは全イメージで集団的に実行されなければならず，全イメージで同じ形状を
+割付けなければならない．これらの制約により，処理系はcoarrayのメモリ配置をイメージ間で
+synmetric に保つことができるので，リモートcoarrayのアドレス計算をローカル側の情報だけで
+行うことができる。
+例えば，他イメージの変数の多次元の添字式から相対アドレスを計算するには，
+自イメージの同名の変数の情報を参照すればよいので，他イメージのインデックス情報を受け取る必要も，
+事前に収集してテーブルに保存しておく必要もない．
+これによりMPIのlendezbous通信のような通信前のアドレス交換のための通信を不要にできる。
+
+communication libraryによっては、Fortranランタイムシステムが割付けた領域を効率的な
+片側通信の対象にすることができない。その場合には、communication libaryが提供する方法で
+割付けた領域をFortranランタイムシステムに渡してFortranの変数であると認識させる実装が
+求められる。
+また、データを片側通信の対象とするためには、commnication libraryにそれを {\em register}
+しなければならない。commnucation libraryはその領域をRDMAの対象とするためのpin-downなどの
+必要な前処理を行う必要があるからである。
+registrationコストの削減のためには、すべてのnon-allocatable coarrayは１カ所にまとめて
+利用者プログラムの実行開始前に１回だけ行うようにするのが望ましい。
+
+
+\subsection{Communication}
+
+one-sidedとcollectiveとatomicの３つ。
+
+\subsubsection{Get通信}
+
+イメージkにおけるcoarray変数aの値を参照するにはa[k]と記述する．これはイメージkからのGet通信を引き起こす．aが配列名の場合には配列の全要素に対する通信を意味する．aの部分配列を得るには配列記述を使ってa( :, j1:j2 )[k]などと書くこともできる．これらはcoindexed objectと呼ばれる．
+coindexed objectの参照によって起こる通信は一般に連続データであるとは限らない．部分配列の場合はもちろん，配列名であっても形状引継ぎ配列（仮引数の一種）の場合には実引数次第で不連続になる．通信の高速化のためには，十分に長い範囲の連続性を実行時に抽出する必要がある．一般にノード間通信で立ち上がりレイテンシ時間がほぼ無視できるようになるデータ量は数千バイトのオーダーであることから，配列や部分配列の1次元め（Fortranでは1番左の添字）が連続であっても数千要素に満たない場合には，次元を跨いだ連続性まで抽出して，十分に長い連続データとして通信する技術が必要である．
+
+\subsubsection{Put通信}
+
+以下のようにcoindex objectと同じ形を代入文の左辺に書くと，Put通信の表現となる．
+      a [i] = 式
+この左辺式はcoindexed variableと呼ばれる．Get通信と同様，aは配列名にも部分配列にもなれるので，coindexed variableについても次元を跨いだ連続性の抽出が必要である．右辺式には任意のスカラ式または配列式が許されるため，右辺式データの連続性にも配慮しなければならない．高速な通信を実現するには，左辺と右辺で共通に連続な区間を検出してその単位で通信を反復するか，右辺データは連続区間にpackして左辺の連続区間を単位として通信を反復するなどの戦略が考えられる．
+
+\subsubsection{集団通信}
+
+XMP 1.0ではFortran2008仕様のCoarray機能までを使用範囲としているため，イメージ間のリダクション演算とブロードキャストを含まない．これらは必ず必要になると考えるので，Omni XMPではFortran2015で定義されている組込みサブルーチン$co_sum$, $co_max$, $co_min$と$co_broadcast$の一部の機能を実装した．
+ランタイムライブラリの実装は，下位通信層にMPIを使うなら，対応するMPI手続を呼ぶだけであるが，配列や部分配列のリダクション演算をcopy-in/outをできるだけ起こさないように効率よく実装するには，CAFトランスレータ側に工夫が必要である．
+
+
+
+
+\subsection{Array Notation and Contiguity}
+MPIとくらべたcoarrayの優位性はarray sectionを効率よく表現できることだ。
+Fortran 90 以降Fortranに導入された配列式、配列代入の機能はそのまま
+coarray put/get communicationの表記に活かされている。
+つまりarray sectionはデータの部分を表現するとともに通信の範囲やパターンを表現する。
+MPIでは後者はMPI\_typeなどを使って次元毎に再帰的に表現し直さなければならない。
+
+また、RDMA可能かどうかはコンパイラとruntime上位で判断できる。
+
+これを効率よく実装する方法については次の章で。
+
+
+\subsection{Argument Passing}
+coarray変数の引数渡しをトランスレータ方式で実現するには大きな選択肢があった．coarray変数を1つの記述子に変換し，記述子を通して実体のアドレスとその他の情報を取り出せるようにすれば，引数渡しは記述子の受渡しだけとなる．しかしその場合には，データ実体がFortranシステムから見えなくなるので，dopeベクトルも我々が生成・管理しなければならない．そして，サブプログラム内でのcoarray変数の通常の参照・定義に対して，dopeベクトルを使ったインデックスの計算式をソース-to-ソースで組み上げるか，実行時ライブラリ呼出しに変換しなければならない．これは大きな性能低下が予想される．我々は，coarray変数を同じ形状をもつ非coarray変数に変換することで，Fortranシステムのdopeベクトルの仕組みをそのまま使う方法を採った．その結果新しく生じた課題については3.3節で議論する．
+
+
+\subsection{Loose synchronization}
+各イメージでは従来通りのデータフローを守りながら、image間では明示的な同期を書かない限り順序が保証されない仕様である。
+この仕様が連続通信の自由度と制限を決める。図を使って説明。参照はblockingになる。定義はデータ依存関係の許す限り、次の同期までのnon-blockingが許される。ここに最適化のチャンスがある。
+
+
+\subsection{Coarray C Language Specifications}
+
+C言語にも配列式、配列代入を導入することでFortranと同様なcoarray featuresを仕様定義した。
+
+coarrayはデータ実体に限る。ポインタはcoarrayになれない。形式的には、
+1)基本型、2)ポインタを含まない構造型、または、3) 1or2or3の配列とする。
+Cのcoarrayにおいてもstaticとallocatableがある。ファイル直下で宣言するか
+static指示したcoarrayはstatic coarrayである。ライブラリ関数xxxをつかって
+割付けたデータ領域はallocatable coarrayであり、ライブラリ関数は
+allocatable coarrayへのポインタを返す。
+Cのcoarrayは、通常のCの変数と同じように、引数渡しやcast演算によって自由に
+その型と形状の解釈を変えることができる。
+
+これらの仕様と制限は、Cプログラマ
+にとっての使いやすさを考えて、Cらしいプログラミングスタイルを認めた。
+Coarray C++とは違うアプローチである。
+
+cf.\ air:/Users/iwashita/Desktop/coarray/Project\_Coarray/の下にいくつか

@@ -1,0 +1,260 @@
+%%%%%%%%%%%%%%%% Springer %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RECOMMENDED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[graybox]{svmult}
+% choose options for [] as required from the list
+% in the Reference Guide
+\usepackage{type1cm}        % activate if the above 3 fonts are
+                            % not available on your system
+%
+\usepackage{makeidx}         % allows index generation
+%\usepackage{graphicx}        % standard LaTeX graphics tool
+                             % when including Fig.~files
+\usepackage{multicol}        % used for the two-column index
+\usepackage[bottom]{footmisc}% places footnotes at page bottom
+\usepackage{newtxtext}       % 
+\usepackage{newtxmath}       % selects Times Roman as basic font
+% see the list of further useful packages
+% in the Reference Guide
+%\makeindex             % used for the subject index
+                       % please use the style svind.ist with
+                       % your makeindex program
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \usepackage{amsmath}
+% \usepackage{ascmac}
+\usepackage[dvipdfmx]{graphicx}  % for EPS and PDF 
+% \usepackage{url}
+\usepackage{fancyvrb}
+% \usepackage{makeidx}
+% \usepackage{float}
+% \usepackage[dvipdfmx]{color}
+% \usepackage{ulem}
+% \usepackage[switch*,pagewise]{lineno}
+% \usepackage[dvipdfm,bookmarkstype=toc,urlcolor=black,%
+%     linkcolor=black,citecolor=black,bookmarks=false]{hyperref}
+% \usepackage{fancyhdr}
+
+\usepackage{listings}
+\lstset{%
+ language={C},
+% basicstyle={\scriptsize},%
+% identifierstyle={\scriptsize},%
+ basicstyle={\small},%
+ identifierstyle={\small},%
+% commentstyle={\small\itshape},%
+%commentstyle={\scriptsize},%
+commentstyle={\small},%
+ keywordstyle={\small\bfseries},%
+ ndkeywordstyle={\small},%
+stringstyle={\small\ttfamily},
+ frame={tb},
+ breaklines=true,
+ columns=[l]{fullflexible},%
+ numbers=left,%
+ xrightmargin=1zw,%
+ xleftmargin=1.5zw,%
+ numberstyle={\small},%
+ stepnumber=1,
+ numbersep=1zw,%
+% lineskip=-0.1ex%
+}
+
+\def\|{\verb|}
+
+%\newenvironment{myfigure}{\begin{figure}[ht]\begin{center}}{\end{center}\end{figure}}
+
+\def\Directive#1{{\tt #1}\index{#1@{\tt #1}}\index{Directive!#1@{\tt #1}}}
+
+%\def\Syntax#1{\index{{\tt #1}}\index{Syntax!{\tt #1}}}
+\def\Syntax#1{\index{Syntax!#1@{\tt #1}}}
+
+\def\Term#1{{#1}\index{#1}}
+
+%\def\Example#1{\index{#1}\index{Example!{\tt #1}}}
+\def\Example#1{\index{Example!#1@{\tt #1}}}
+
+\def\Intrinsic#1{\index{#1@{\tt #1}}\index{Intrinsic and Library Procedures!#1@{\tt #1}}}
+
+\DefineVerbatimEnvironment{Fexample}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
+frame=single,label=\Fort}
+\DefineVerbatimEnvironment{FexampleR}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
+frame=single,label=\Fort}
+
+\DefineVerbatimEnvironment{Cexample}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
+frame=single,label=\C}
+\DefineVerbatimEnvironment{CexampleR}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
+frame=single,label=\C}
+
+\DefineVerbatimEnvironment{XFexample}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
+frame=single,label=\XMPF}
+\DefineVerbatimEnvironment{XFexampleR}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
+frame=single,label=\XMPF}
+
+\DefineVerbatimEnvironment{XCexample}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
+frame=single,label=\XMPC}
+\DefineVerbatimEnvironment{XCexampleR}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
+frame=single,label=\XMPC}
+
+\DefineVerbatimEnvironment{MPICexample}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
+frame=single,label=MPI C}
+\DefineVerbatimEnvironment{MPIFexample}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
+frame=single,label=MPI Fortran}
+
+
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+\setcounter{totalnumber}{6}
+\usepackage{fancyhdr}
+
+\let\olditemize\itemize
+\renewcommand{\itemize}{
+   \olditemize
+   \setlength{\itemsep}{8pt}
+   \setlength{\parskip}{0pt}
+   \setlength{\parsep}{0pt}
+}
+
+% \parindent = 0pt
+% \hoffset=0cm
+% \oddsidemargin=0cm
+% \evensidemargin=0cm
+% \textwidth=16cm
+% \topmargin=-1cm
+% \voffset=0cm
+% \textheight=24cm
+
+\def\progenv{\baselineskip=10pt\tt\progspecial{`}\parindent=0.3cm}
+\def\shellenv{\baselineskip=10pt\tt\progspecial{`}\parindent=0.3cm\nolineno}
+
+\renewcommand{\topfraction}{.99}
+\renewcommand{\bottomfraction}{.99}
+
+\def\openb{{\it [}}
+\def\closeb{{\it ]}}
+\def\XMP{XcalableMP}
+\def\XACC{XcalableACC}
+\def\OACC{OpenACC}
+\def\OMP{OpenMP}
+\def\XMPF{XcalableMP Fortran}
+\def\XMPC{XcalableMP C}
+\def\XACCF{XcalableACC Fortran}
+\def\XACCC{XcalableACC C}
+\def\Syntax#1{\index{Syntax!#1@{\tt #1}}}
+\def\Example#1{\index{Example!#1@{\tt #1}}}
+%
+\def\phrule{\vspace{0.2cm}\hrule\vspace{0.05cm}\hrule}
+\def\qhrule{\vspace{0.2cm}\hrule}
+\def\dhrule{\hrule\vspace{0.05cm}\hrule}
+\def\bsquare{\rule[-2pt]{5pt}{10pt}}
+%
+\newenvironment{mytable}[3]{\begin{table}[ht]\caption{#1}\label{#2}\vspace*{-0.3cm}\begin{center}\begin{tabular}{#3}}{\end{tabular}\end{center}\end{table}}
+\newenvironment{myfigure}{\begin{figure}[ht]\begin{center}}{\end{center}\end{figure}}
+%
+\DefineVerbatimEnvironment{XACCFexampleL}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,frame=single,label=\XACCF}
+\DefineVerbatimEnvironment{XACCCexampleR}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,frame=single,label=\XACCC}
+\DefineVerbatimEnvironment{XACCCexampleL}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,frame=single,label=\XACCC}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+
+
+\title*{Coarrays in the Context of XcalableMP}
+% Use \titlerunning{Short Title} for an abbreviated version of
+% your contribution title if the original one is too long
+
+\author{H.\ Iwashita and M.\ Nakao}
+% Use \authorrunning{Short Title} for an abbreviated version of
+% your contribution title if the original one is too long
+
+\institute{
+Hidetoshi Iwashita 
+\at Fujitsu Limited, 140 Miyamoto, Numazu-shi, Shizuoka 410-0396, Japan,
+\email{iwashita.hideto@fujitsu.com}
+\and
+Masahiro Nakao \at RIKEN Center for Computational Science,
+7-1-26 Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan,
+\email{masahiro.nakao@riken.jp}
+}
+
+%
+% Use the package "url.sty" to avoid
+% problems with special characters
+% used in your e-mail or web address
+%
+\maketitle
+
+\abstract{@@@ XcalableACC (XACC) is an extension of XcalableMP for
+accelerated clusters. It is defined as a diagonal integration of
+XcalableMP and OpenACC, which is another directive-based language
+designed to program heterogeneous CPU/accelerator systems. XACC has
+features for handling distributed-memory parallelism, inherited from
+XMP, offloading tasks to accelerators, inherited from OpenACC, and
+two additional functions: data/work mapping among multiple accelerators
+and direct communication between accelerators.
+}
+
+%\tableofcontents
+\clearpage
+
+%
+% Sections
+%
+
+\input{1.intro.tex} 
+%\cleardoublepage
+
+\input{2.lang.tex}
+%\cleardoublepage
+
+\input{3.compiler.tex}
+%\cleardoublepage
+
+\input{4.runtime.tex}
+%\cleardoublepage
+
+\input{5.eval.tex}
+%\cleardoublepage
+
+\input{6.related.tex}
+%\cleardoublepage
+
+\input{7.concl.tex}
+%\cleardoublepage
+
+\appendix
+
+\section{MEMO}
+MPIはPGASに向かない、という論文がどこかに。
+
+\section{Fusen}
+\input{appendix/fusen2.tex}
+
+\section{STATUS-CAF}
+\input{appendix/status-caf.tex}
+
+\section{mac-air memo}
+\input{appendix/memo.tex}
+
+\section{nigun}
+\input{appendix/nigun.tex}
+
+                                   
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{\bibname}
+ \bibitem{xmp} XcalableMP Language Specification, \url{http://xcalablemp.org/specification.html} (2017).
+ \bibitem{openacc} The OpenACC Application Programming Interface, \url{http://www.openacc.org} (2015).
+ \bibitem{mpi} MPI: A Message-Passing Interface Standard, \url{http://mpi-forum.org} (2015).
+ \bibitem{coarray} John Reid, JKR Associates, UK. Coarrays in the next Fortran Standard.
+    ISO/IEC JTC1/SC22/WG5 N1824, April 21, 2010.
+ \bibitem{coarray18} ISO/IEC TS 18508:2015, Information technology -- Additional Parallel 
+    Features in Fortran, Technical Specification, December 1, 2015.
+ \bibitem{F08} Fortran~2008
+ \bibitem{F18} Fortran~2018
+\end{thebibliography}
+
+\end{document}
+
+
+

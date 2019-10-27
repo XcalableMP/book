@@ -1,0 +1,29 @@
+\section{Compiler Implementation for high performance}\label{sec:compiler}
+
+
+\subsubsection{static coarrayの高速化}
+
+全部まとめて先にallocするコンパイラ技術
+
+定数評価、構造体の大きめな見積り
+
+\subsubsection{allocatable coarrayの高速化}
+
+lower level communication libraryに合わせてallocation methodを選択
+
+runtimelibshare事前に巨大領域を取る
+
+実行時allocのコストが大きいとき
+
+
+runtimeliballocation実行時allocのコストが小さいとき
+
+\subsubsection{contiguouity検出による高速化}
+次元を跨ぐ連続性抽出
+
+\subsubsection{バッファリング}
+有限サイズ、基礎データから、nlocal, nremote, nbufの関係でアルゴリズム
+commpilerallocationfortranがallocateしてregisterできるとき
+
+
+
