@@ -1,3 +1,5 @@
+# Makefile for macAir:~/Project/XMPBook/book/chap3/
+
 main.pdf : main.dvi
 	dvipdfmx main.dvi
 
