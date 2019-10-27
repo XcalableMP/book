@@ -1,0 +1,37 @@
+\begin{verbatim}
+
+introduction
+coarrays in XcalableMP
+support F2008 coarrays
+image setをtaskに対してmap
+natural extension to C
+basic implementation and issues
+lower-level interface
+evaluation
+related work
+Coarray C++は
+task間はF2018のcoarrayにある。違いは・・・
+Crayはgetをdirectiveで実装
+conclusion
+
+implementation for high performance
+static coarrayの高速化
+全部まとめて先にallocするコンパイラ技術
+定数評価、構造体の大きめな見積り
+allocatable coarrayの高速化：lowlevelに合わせて選択
+RuntimeLibShare事前に巨大領域を取る
+実行時allocのコストが大きいとき
+RuntimeLibAllocation実行時allocのコストが小さいとき
+contiguouity検出による高速化
+次元を跨ぐ連続性抽出
+バッファリング
+有限サイズ、基礎データから、Nlocal, Nremote, Nbufの関係でアルゴリズム
+CommpilerAllocationFortranがallocateしてregisterできるとき
+
+implementation software layer
+３種：one sided, collective, atomic. このうちcollectiveとatomicはMPIの機能をそのまま使う。それ以上の工夫はない。one sidedはallocate/freeとput/getと同期。lower-level通信層のバリエーションを吸収するライブラリ層を設けた。階層の図。
+次元の概念とcontiguityを上位層で解決するため結果的に必要なインタフェースは少なくなった
+
+
+
+\end{verbatim}
