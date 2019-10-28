@@ -1,5 +1,20 @@
 \section{Compiler Implementation for high performance}\label{sec:compiler}
 
+communication libraryによっては、Fortranランタイムシステムが割付けた領域を効率的な
+片側通信の対象にすることができない。その場合には、communication libaryが提供する方法で
+割付けた領域をFortranランタイムシステムに渡してFortranの変数であると認識させる実装が
+求められる。
+また、データを片側通信の対象とするためには、commnication libraryにそれを {\em register}
+しなければならない。commnucation libraryはその領域をRDMAの対象とするためのpin-downなどの
+必要な前処理を行う必要があるからである。
+registrationコストの削減のためには、すべてのnon-allocatable coarrayは１カ所にまとめて
+利用者プログラムの実行開始前に１回だけ行うようにするのが望ましい。
+
+
+
+
+
+
 MPIとくらべたcoarrayの優位性はarray sectionを効率よく表現できることだ。
 Fortran 90 以降Fortranに導入された配列式、配列代入の機能はそのまま
 coarray put/get communicationの表記に活かされている。

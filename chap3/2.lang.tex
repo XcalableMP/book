@@ -2,13 +2,16 @@
 
 The XcalableMP/Fortran compiler supports a major part of coarray features defined in 
 Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
-{\em CO\_SUM}, {\em CO\_MAX}, {\em CO_MIN} and {\em CO_BROADCAST} defined in 
+{\em CO\_SUM}, {\em CO\_MAX}, {\em CO\_MIN} and {\em CO\_BROADCAST} defined in 
 Fortran~2018 standard~\cite{F18} were supported.
 
 This section introduces the coarray features and the issues for implementation of 
 the coarray features.
 
+%-----------------------------------------------------------------------------
 \subsection{Images and Coarrays}
+%-----------------------------------------------------------------------------
+
 An {\em image} is defined as a instance of a program. 
 Each image executes the same program and has its own data individually 
 (SPMD: Single Program/Multiple Data).
@@ -23,32 +26,37 @@ $n$ is the number of images and also the number of the executing nodes.
 Note that the executing nodes can be a subset of the entire (initial) node set. 
 For example, two distinct node sets can execute two coarray subprograms concurrently.
 When the execution encounters a {\em TASK} directive specified with a subset of nodes,
-the set of executing images changes into its subset corresponding to the nodes.
+the corresponding subset of the images will be the execting images for the
+TASK region. 
 The number of images and my image number, which are given by inquire functions
-{\em num\_images} and {\em this\_image}, also match with the executing images.
-The {\em SYNC\_IMAGES} statement synchronizes in each set of executing nodes.
-Unless the {\em TASK} directives are used, coarray features are 
+{\em num\_images} and {\em this\_image}, also match with the executing images, and
+the {\em SYNC\_IMAGES} statement synchronizes among the executing images.
+When the execution encounters the {\em END TASK} directive corresponding to the
+{\em TASK} directive, the set of executing image is reinstated.
+Unless the {\em TASK} and {\em END TASK} directives are used, coarray features are 
 compatible to the ones of the Fortran standard. 
 
-#多重タスク実行がある場合、それぞれのタスクでcoarrayプログラムが原則として独立に実行される。
-#あるタスクでallocateしたcoarrayは、そのタスクの有効範囲を超えない範囲で、
-#タスクを実行するnode間で共有されるのが原則である。同期の範囲も原則としてその中である。
+%多重タスク実行がある場合、それぞれのタスクでcoarrayプログラムが原則として独立に実行される。
+%あるタスクでallocateしたcoarrayは、そのタスクの有効範囲を超えない範囲で、
+%タスクを実行するnode間で共有されるのが原則である。同期の範囲も原則としてその中である。
 
-これを入れるかどうか:
-\begin{itemize}
-\item The XcalableMP compiler manages these values in stack.
-\item タスク実行のときのスタックの使い方、構文が入れ子なので同じレベルに戻ることができること。
-\end{itemize}
+\paragraph{Requirement to the compiler:}
+Memory management is necessary to cope with changes of the executing images.
+
+%The XcalableMP compiler manages these values in stack.
+%タスク実行のときのスタックの使い方、構文が入れ子なので同じレベルに戻ることができること。
 
 
-\subsubsection{Non-allocatable and allocatable coarrays}
+%-----------------------------------------------------------------------------
+\subsection{Coarrays}
+%-----------------------------------------------------------------------------
 
 Basically, variables are private to each image and cannot be accessed from 
 the other images without using intrinsic atomic procedures or global-view features.
 {\em Coarrays} are only the variables that are allowed to be
-accessed from the other images in the usual Fortran contexts. 
+accessed from the other images while the owner is not aware.
 
-Coarrays can be declared as scalar or array variables with the SAVE attribute
+Coarrays can be declared as scalar or array variables with the {\em SAVE} attribute
 (the static attribute of C) as follows:
 
 \begin{verbatim}
@@ -58,7 +66,7 @@ Coarrays can be declared as scalar or array variables with the SAVE attribute
 
 The square bracket notation in the declaration distingishes coarray variables from 
 the others (non-coarrays). It declares the virtual shape of the images and the last 
-dimension must be defferred (as `*').
+dimension must be defferred (as `{\em *}').
 This type of coarrays above are called as {\em non-allocatable coarrays}. 
 
 Alternatively, coarrays can be declared as {\em allocatable coarrays} with the 
@@ -73,42 +81,62 @@ following form:
 Fortranでは，手続に局所的でsave属性を持たない割付け変数は，手続からの復帰時に割付け状態であると，
 自動的に解放される．CAFではcoarray変数についてもこの機能(automatinc deallocation)が要求されている．
 
-
-共通の制約として，これらは全イメージで集団的に実行されなければならず，全イメージで同じ形状を
+\paragraph{Requirement to the compiler:}
+Coarraysは、全イメージで集団的に（同時に）実行されなければならず，全イメージで同じ形状を
 割付けなければならない．これらの制約により，処理系はcoarrayのメモリ配置をイメージ間で
 synmetric に保つことができるので，リモートcoarrayのアドレス計算をローカル側の情報だけで
-行うことができる。
+行うことができる。実行効率のためにそのようなメモリ管理が暗に要望されている。
 例えば，他イメージの変数の多次元の添字式から相対アドレスを計算するには，
 自イメージの同名の変数の情報を参照すればよいので，他イメージのインデックス情報を受け取る必要も，
 事前に収集してテーブルに保存しておく必要もない．
 これによりMPIのlendezbous通信のような通信前のアドレス交換のための通信を不要にできる。
 
-communication libraryによっては、Fortranランタイムシステムが割付けた領域を効率的な
-片側通信の対象にすることができない。その場合には、communication libaryが提供する方法で
-割付けた領域をFortranランタイムシステムに渡してFortranの変数であると認識させる実装が
-求められる。
-また、データを片側通信の対象とするためには、commnication libraryにそれを {\em register}
-しなければならない。commnucation libraryはその領域をRDMAの対象とするためのpin-downなどの
-必要な前処理を行う必要があるからである。
-registrationコストの削減のためには、すべてのnon-allocatable coarrayは１カ所にまとめて
-利用者プログラムの実行開始前に１回だけ行うようにするのが望ましい。
 
-
-\subsection{Communication}
+%-----------------------------------------------------------------------------
+\subsection{Communications}
+%-----------------------------------------------------------------------------
 
 Coarray features include three types of communications between images, i.e.,
 \begin{itemize}
 \item reference and definition to remote coarrays (GET and PUT communication),
 \item collective communication (intrinsic subroutines {\em CO\_SUM}, {\em CO\_MAX}, 
-{\em CO_MIN} and {\em CO_BROADCAST}), and
+{\em CO\_MIN} and {\em CO\_BROADCAST}), and
 \item atomic operations ({\em ATOMIC\_DEFINE} and {\em ATOMIC\_REF}).
 \end{itemize}
 
 Omni compiler implements the latter two communications using the corresponding 
 functions in MPI. The rest of this section describes the former communication.
 
+%===========================================================
+\subsubsection{PUT communication}
+%===========================================================
 
+PUT communication is caused by an assignment statement with a {\em coindexed variable} 
+as the left-hand side expression, e.g.,
+\begin{verbatim}
+      a(i,j)[k] = alpha * b(i,j) + c(i,j)
+\end{verbatim}
+This statement is to cause the PUT communication to the array element $a(i,j)$ on image $k$
+with the value of the left-hand side.
+
+Fortranの配列代入文を使えば、配列から配列へのPUT通信を記述することもできる。
+例えば以下の配列代入文は、$M N$ 要素のPUT通信を生じさせる。
+\begin{verbatim}
+      a(1:M,1:N)[k] = alpha * b(1:M,1:N) + c(1:M,1:N)
+\end{verbatim}
+
+\paragraph{Requirement to the compiler:}
+実行効率のため、リモート側のCPUに負荷を与えないRDMAが望ましい。
+配列代入文では、一般には右辺の評価結果をFortranシステムが一時領域に置くが、
+通信バッファをできる限り多重にしない工夫が必要である。
+右辺が配列の参照だけの場合はゼロコピー通信とすることが望ましい。
+また、次のimage制御文によって同期が行われるまでPUTされたデータは他のimageから
+参照されないので、実行はPUT通信の完了を待たないで次に進むことができる（nonbrocking communication）。
+
+
+%===========================================================
 \subsubsection{GET communication}
+%===========================================================
 
 GET communication is caused by referencing the {\em coindexed object}, 
 which is represented by a coarray variable with cosubscripts enclosed by square brackets, 
@@ -116,27 +144,37 @@ e.g., $s[1,2]$ and $a(i,j)[k]$, where $s$ and $a$ are scalar and two-dimentional
 respectively.
 Coindexed objects can appear in most expressions.
 
-coindexed objectの参照は、$a(:,:)[k]$や$a(2:N-1,1:N)[k]$のように全体配列や部分配列になることも
-でき、一般に連続であるとは限らない。全体配列であっても形状引継ぎ配列の場合には不連続かもしれない。
-一般にこの連続部分の長さは実行時でなければ分からない。
+値を配列とする配列式を使うと配列に対するGET通信を行うことができる。
+例えば coindexed-object $a(1:M,1:N)[k]$ の値は$a$と同じ型で形状$[M, N]$の2次元配列である。
+
+
+\paragraph{Requirement to the compiler:}
+実行効率のため、リモート側のCPUに負荷を与えないRDMAが望ましい。
+ローカル側は、獲得したデータがすぐに消費されることからnonblocking化は適さない。
+できる限りバッファリングを回避してゼロコピーとすることで効率化したい。
+受信側（local側）をゼロコピーにするため、最適化が有効。右辺に１つのcoindexed-object1しかない
+配列代入文、例えば、
+\begin{verbatim}
+      a(1:M,1:N) = b(1:M,1:N)[k]
+\end{verbatim}
+では、GET通信の受信先をバッファでなく直接変数aにすることで、ゼロコピーにできる場合がある。
+
+
+%-----------------------------------------------------------------------------
+\subsection{Array Expressions and Data Cotiguity}
+%-----------------------------------------------------------------------------
+
+PUT/GET communication の添字式についてさらに深い議論をする。
+添字には始点、終点、ストライドから成る三つ組を書くことができて、
+通信データは一般に連続であるとは限らない。
+
+\paragraph{Requirement to the compiler}
 通信の高速化のためには，十分に長い範囲の連続性を実行時に抽出する必要がある．
 一般にノード間通信で立ち上がりレイテンシ時間がほぼ無視できるようになるデータ量は
 数千バイトであることから，配列や部分配列の1次元め（Fortranでは1番左の添字）が
 連続であっても数千要素に満たない場合には，次元を跨いだ連続性まで抽出して，
 十分に長い連続データとして通信する技術が必要である．
 【fx100-latencyのグラフから数千バイトを言ってもよい。】
-
-
-【右辺式がcoindexed objectのとき最適化できる。】
-
-
-\subsubsection{PUT communication}
-
-PUT communication is caused by an assignment statement with a {\em coindexed variable} 
-as the left-hand side expression, e.g.,
-\begin{verbatim}
-      a(i,j)[k] = b(i,j) + c(i,j)
-\end{verbatim}
 
 Get通信と同様，a(i,j)[k]は代わりに全体配列にも部分配列にもなれるので，
 coindexed variableについても次元を跨いだ連続性の抽出が必要である．
@@ -146,7 +184,9 @@ coindexed variableについても次元を跨いだ連続性の抽出が必要�
 
 
 
+%-----------------------------------------------------------------------------
 \subsection{Argument Passing}
+%-----------------------------------------------------------------------------
 @@@
 coarray変数の引数渡しをトランスレータ方式で実現するには大きな選択肢があった．
 coarray変数を1つの記述子に変換し，記述子を通して実体のアドレスとその他の情報を取り出せるようにすれば，
@@ -161,12 +201,16 @@ Fortranシステムのdopeベクトルの仕組みをそのまま使う方法を
 その結果新しく生じた課題については3.3節で議論する．
 
 
+%-----------------------------------------------------------------------------
 \subsection{Loose synchronization}
+%-----------------------------------------------------------------------------
 各イメージでは従来通りのデータフローを守りながら、image間では明示的な同期を書かない限り順序が保証されない仕様である。
 この仕様が連続通信の自由度と制限を決める。図を使って説明。参照はblockingになる。定義はデータ依存関係の許す限り、次の同期までのnon-blockingが許される。ここに最適化のチャンスがある。
 
 
+%-----------------------------------------------------------------------------
 \subsection{Coarray C Language Specifications}
+%-----------------------------------------------------------------------------
 
 C言語にも配列式、配列代入を導入することでFortranと同様なcoarray featuresを仕様定義した。
 
