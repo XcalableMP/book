@@ -2,17 +2,17 @@
 
 The XcalableMP/Fortran compiler supports a major part of coarray features defined in 
 Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
-{\em CO\_SUM}, {\em CO\_MAX}, {\em CO\_MIN} and {\em CO\_BROADCAST} defined in 
+{\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN} and {\tt CO\_BROADCAST} defined in 
 Fortran~2018 standard~\cite{F18} were supported.
 
 This section introduces the coarray features and the issues for implementation of 
 the coarray features.
 
 %-----------------------------------------------------------------------------
-\subsection{Images and Coarrays}
+\subsection{Images Mapped to Nodes}
 %-----------------------------------------------------------------------------
 
-An {\em image} is defined as a instance of a program. 
+An {\bf image} is defined as a instance of a program. 
 Each image executes the same program and has its own data individually 
 (SPMD: Single Program/Multiple Data).
 Each image has a different image index, which is one of $1, \cdots, n$, 
@@ -25,15 +25,15 @@ $n$ is the number of images and also the number of the executing nodes.
 
 Note that the executing nodes can be a subset of the entire (initial) node set. 
 For example, two distinct node sets can execute two coarray subprograms concurrently.
-When the execution encounters a {\em TASK} directive specified with a subset of nodes,
+When the execution encounters a {\tt TASK} directive specified with a subset of nodes,
 the corresponding subset of the images will be the execting images for the
 TASK region. 
 The number of images and my image number, which are given by inquire functions
-{\em num\_images} and {\em this\_image}, also match with the executing images, and
-the {\em SYNC\_IMAGES} statement synchronizes among the executing images.
-When the execution encounters the {\em END TASK} directive corresponding to the
-{\em TASK} directive, the set of executing image is reinstated.
-Unless the {\em TASK} and {\em END TASK} directives are used, coarray features are 
+{\tt num\_images} and {\tt this\_image}, also match with the executing images, and
+the {\tt SYNC\_IMAGES} statement synchronizes among the executing images.
+When the execution encounters the {\tt END TASK} directive corresponding to the
+{\tt TASK} directive, the set of executing image is reinstated.
+Unless the {\tt TASK} and {\tt END TASK} directives are used, coarray features are 
 compatible to the ones of the Fortran standard. 
 
 %多重タスク実行がある場合、それぞれのタスクでcoarrayプログラムが原則として独立に実行される。
@@ -48,17 +48,20 @@ Memory management is necessary to cope with changes of the executing images.
 
 
 %-----------------------------------------------------------------------------
-\subsection{Coarrays}
+\subsection{Allocation of Coarrays}
 %-----------------------------------------------------------------------------
 
-Basically, variables are private to each image and cannot be accessed from 
-the other images without using intrinsic atomic procedures or global-view features.
-{\em Coarrays} are only the variables that are allowed to be
-accessed from the other images while the owner is not aware.
+A {\bf coarray} or a coarray variable is a variable that can be referred from the other images. 
+A coarray with the {\tt ALLOCATABLE} attribute is called an {\bf allocatable coarray}, 
+otherwise called a non-allocatable coarray. A non-allocatable coarray may not be a pointer 
+and must have an explicit shape and the {\tt SAVE} attribute. 
+In order to help intuitive understanding, we call a non-allocatable coarray as 
+a {\bf static coarray}. The lifetime of a static coarray is throughout execution of the program. 
+On the other hand, an allocatable coarray is allocated with the {\tt ALLOCATE} statement and 
+freed either explicitly with the {\tt DEALLOCATE} statement or implicitly at the end of the scope
+in which the {\tt ALLOCATE} statement is executed ({\bf automatic deallocation}).
 
-Coarrays can be declared as scalar or array variables with the {\em SAVE} attribute
-(the static attribute of C) as follows:
-
+Static coarrays can be declared as scalar or array variables as follows:
 \begin{verbatim}
       real(8), save :: a(100,100)[*]
       type(user_defined_type), save :: s[2,2,*]
@@ -66,30 +69,31 @@ Coarrays can be declared as scalar or array variables with the {\em SAVE} attrib
 
 The square bracket notation in the declaration distingishes coarray variables from 
 the others (non-coarrays). It declares the virtual shape of the images and the last 
-dimension must be defferred (as `{\em *}').
-This type of coarrays above are called as {\em non-allocatable coarrays}. 
+dimension must be defferred (as `{\tt *}').
 
-Alternatively, coarrays can be declared as {\em allocatable coarrays} with the 
-following form:
-
+Allocatable coarrays can be declared as follows:
 \begin{verbatim}
       real(8), allocatable :: b(:,:)[:]
       type(user_defined_type), allocatable :: t[:,:,:]
 \end{verbatim}
 
-割付けcoarrayはALLOCATE文を使って割付けて，DEALLOCATE文を使って解放することができる．
-Fortranでは，手続に局所的でsave属性を持たない割付け変数は，手続からの復帰時に割付け状態であると，
-自動的に解放される．CAFではcoarray変数についてもこの機能(automatinc deallocation)が要求されている．
+
+A notable constraint is that at any synchronization point in program execution, 
+coarrays must have the same dimensions (sizes of all axes) between all images
+({\bf synmetric memory allocation}). 
+Therefore, an static coarray must have the same shape between all images during 
+the program execution, and an allocatable coarray must be allocated and deallocated 
+collectively at the same time with the same dimensions between the executing images.
 
 \paragraph{Requirement to the compiler:}
-Coarraysは、全イメージで集団的に（同時に）実行されなければならず，全イメージで同じ形状を
-割付けなければならない．これらの制約により，処理系はcoarrayのメモリ配置をイメージ間で
-synmetric に保つことができるので，リモートcoarrayのアドレス計算をローカル側の情報だけで
-行うことができる。実行効率のためにそのようなメモリ管理が暗に要望されている。
-例えば，他イメージの変数の多次元の添字式から相対アドレスを計算するには，
-自イメージの同名の変数の情報を参照すればよいので，他イメージのインデックス情報を受け取る必要も，
-事前に収集してテーブルに保存しておく必要もない．
-これによりMPIのlendezbous通信のような通信前のアドレス交換のための通信を不要にできる。
+Thanks to the synmetric memory allocation rule, all executing images can have
+the same synmetrical memory layout, which makes it possible to calculate the address 
+of the remote coarray with no prior interimage communication.
+The language specification suggests the compiler to maintain the synmetric memory
+allocation and utilize it.
+
+automatic deallocationの生成が必要なことをどこかに。deregisterと一緒に。
+片側通信を使ってremote coarrayをアクセスするためには、registerがいることを先に。
 
 
 %-----------------------------------------------------------------------------
@@ -99,9 +103,9 @@ synmetric に保つことができるので，リモートcoarrayのアドレス
 Coarray features include three types of communications between images, i.e.,
 \begin{itemize}
 \item reference and definition to remote coarrays (GET and PUT communication),
-\item collective communication (intrinsic subroutines {\em CO\_SUM}, {\em CO\_MAX}, 
-{\em CO\_MIN} and {\em CO\_BROADCAST}), and
-\item atomic operations ({\em ATOMIC\_DEFINE} and {\em ATOMIC\_REF}).
+\item collective communication (intrinsic subroutines {\tt CO\_SUM}, {\tt CO\_MAX}, 
+{\tt CO\_MIN} and {\tt CO\_BROADCAST}), and
+\item atomic operations ({\tt ATOMIC\_DEFINE} and {\tt ATOMIC\_REF}).
 \end{itemize}
 
 Omni compiler implements the latter two communications using the corresponding 
@@ -111,7 +115,7 @@ functions in MPI. The rest of this section describes the former communication.
 \subsubsection{PUT communication}
 %===========================================================
 
-PUT communication is caused by an assignment statement with a {\em coindexed variable} 
+PUT communication is caused by an assignment statement with a {\bf coindexed variable} 
 as the left-hand side expression, e.g.,
 \begin{verbatim}
       a(i,j)[k] = alpha * b(i,j) + c(i,j)
@@ -138,7 +142,7 @@ Fortranの配列代入文を使えば、配列から配列へのPUT通信を記�
 \subsubsection{GET communication}
 %===========================================================
 
-GET communication is caused by referencing the {\em coindexed object}, 
+GET communication is caused by referencing the {\bf coindexed object}, 
 which is represented by a coarray variable with cosubscripts enclosed by square brackets, 
 e.g., $s[1,2]$ and $a(i,j)[k]$, where $s$ and $a$ are scalar and two-dimentional array coarrays,
 respectively.
