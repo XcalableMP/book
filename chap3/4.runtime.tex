@@ -23,8 +23,8 @@ library to be referenced or defined via the communication library.
 
 MPI-3 can be selected for all platform on which MPI-3 is implemented. Coarrays are 
 registered and deregistered at the start and end point of the MPI window. 
-Coarrays are performed one-sided communication by {\tt MPI_Put} and {\tt MPI_Get}, 
-and synchronized by {\tt MPI_Win_fence}. 
+Coarrays are performed one-sided communication by {\tt MPI\_Put} and {\tt MPI\_Get}, 
+and synchronized by {\tt MPI\_Win\_fence}. 
 Implementation on MPI incurs certain costs for dynamic allocation of coarrays and 
 waiting for communication completion.
 
@@ -37,9 +37,9 @@ library but using the memory manager made for the pool.
 
 FJ-RDMA can be selected for the implementation over Tofu interconnect of the K computer 
 and Fujitsu PRIMEHPC FX10 and FX100. Basically, each coarray is allocated by the Fortran 
-library and registered with {\tt FJMPI_Rdma_reg_mem}. And it is deregistered with 
-{\tt FJMPI_Rdma_dereg_mem} before deallocated by the Fortran library. 
-One-sided communication is performed with {\tt FJMPI_Rdma_put} and {\tt FJMPI_Rdma_get}, 
+library and registered with {\tt FJMPI\_Rdma\_reg\_mem}. And it is deregistered with 
+{\tt FJMPI\_Rdma\_dereg\_mem} before deallocated by the Fortran library. 
+One-sided communication is performed with {\tt FJMPI\_Rdma\_put} and {\tt FJMPI\_Rdma\_get}, 
 which include confirmation of communication completion.
 
 

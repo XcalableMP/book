@@ -1,24 +1,29 @@
+\newcommand{\requirement}{{\bf Requirement to the compiler.} }
+
+
 \section{Coarray Features and the Key of the Implementation}\label{sec:lang}
 
-The XcalableMP/Fortran compiler supports a major part of coarray features defined in 
+XMP Fortran language specification supports a major part of coarray features defined in 
 Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
 {\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN} and {\tt CO\_BROADCAST} defined in 
 Fortran~2018 standard~\cite{F18} were supported.
+And also XMP C language specification extended to support coarray features.
 
-This section introduces the coarray features and the issues for implementation of 
-the coarray features.
+This section introduces the coarray features and what is required
+to the compiler in order to implement the coarray features.
+
 
 %-----------------------------------------------------------------------------
-\subsection{Images Mapped to Nodes}
+\subsection{Images Mapped to XMP Nodes}
 %-----------------------------------------------------------------------------
 
-An {\bf image} is defined as a instance of a program. 
+In the Fortran standard, an {\bf image} is defined as a instance of a program. 
 Each image executes the same program and has its own data individually 
 (SPMD: Single Program/Multiple Data).
 Each image has a different image index, which is one of $1, \cdots, n$, 
 where $n$ is the number of images. 
 While Fortran standard does not specify actually where each image is executed, 
-XcalableMP defines that the images are mapped in tern to the executing nodes. 
+XMP defines that the images are mapped in tern to the executing nodes. 
 Therefore, image $k$ is always executed simply on executing node $k$, 
 where $1 \leq k \leq n$ and 
 $n$ is the number of images and also the number of the executing nodes. 
@@ -40,10 +45,10 @@ compatible to the ones of the Fortran standard.
 %あるタスクでallocateしたcoarrayは、そのタスクの有効範囲を超えない範囲で、
 %タスクを実行するnode間で共有されるのが原則である。同期の範囲も原則としてその中である。
 
-\paragraph{Requirement to the compiler:}
+\requirement
 Memory management is necessary to cope with changes of the executing images.
 
-%The XcalableMP compiler manages these values in stack.
+%The XMP compiler manages these values in stack.
 %タスク実行のときのスタックの使い方、構文が入れ子なので同じレベルに戻ることができること。
 
 
@@ -84,13 +89,14 @@ coarrays must have the same dimensions (sizes of all axes) between all images
 Therefore, an static coarray must have the same shape between all images during 
 the program execution, and an allocatable coarray must be allocated and deallocated 
 collectively at the same time with the same dimensions between the executing images.
-
-\paragraph{Requirement to the compiler:}
 Thanks to the synmetric memory allocation rule, all executing images can have
 the same synmetrical memory layout, which makes it possible to calculate the address 
 of the remote coarray with no prior interimage communication.
+
+\requirement
 The language specification suggests the compiler to maintain the synmetric memory
-allocation and utilize it.
+allocation rule and to use it for efficient remote address calculation.
+
 
 automatic deallocationの生成が必要なことをどこかに。deregisterと一緒に。
 片側通信を使ってremote coarrayをアクセスするためには、registerがいることを先に。
@@ -112,7 +118,7 @@ Omni compiler implements the latter two communications using the corresponding
 functions in MPI. The rest of this section describes the former communication.
 
 %===========================================================
-\subsubsection{PUT communication}
+\subsubsection{PUT communication}\label{sec:PUT}
 %===========================================================
 
 PUT communication is caused by an assignment statement with a {\bf coindexed variable} 
@@ -129,8 +135,7 @@ Fortranの配列代入文を使えば、配列から配列へのPUT通信を記�
       a(1:M,1:N)[k] = alpha * b(1:M,1:N) + c(1:M,1:N)
 \end{verbatim}
 
-\paragraph{Requirement to the compiler:}
-実行効率のため、リモート側のCPUに負荷を与えないRDMAが望ましい。
+\requirement
 配列代入文では、一般には右辺の評価結果をFortranシステムが一時領域に置くが、
 通信バッファをできる限り多重にしない工夫が必要である。
 右辺が配列の参照だけの場合はゼロコピー通信とすることが望ましい。
@@ -139,7 +144,7 @@ Fortranの配列代入文を使えば、配列から配列へのPUT通信を記�
 
 
 %===========================================================
-\subsubsection{GET communication}
+\subsubsection{GET communication}\label{sec:GET}
 %===========================================================
 
 GET communication is caused by referencing the {\bf coindexed object}, 
@@ -152,8 +157,7 @@ Coindexed objects can appear in most expressions.
 例えば coindexed-object $a(1:M,1:N)[k]$ の値は$a$と同じ型で形状$[M, N]$の2次元配列である。
 
 
-\paragraph{Requirement to the compiler:}
-実行効率のため、リモート側のCPUに負荷を与えないRDMAが望ましい。
+\requirement
 ローカル側は、獲得したデータがすぐに消費されることからnonblocking化は適さない。
 できる限りバッファリングを回避してゼロコピーとすることで効率化したい。
 受信側（local側）をゼロコピーにするため、最適化が有効。右辺に１つのcoindexed-object1しかない
@@ -164,15 +168,21 @@ Coindexed objects can appear in most expressions.
 では、GET通信の受信先をバッファでなく直接変数aにすることで、ゼロコピーにできる場合がある。
 
 
-%-----------------------------------------------------------------------------
-\subsection{Array Expressions and Data Cotiguity}
-%-----------------------------------------------------------------------------
+%===========================================================
+\subsection{Subarrays and Data Cotiguity}
+%===========================================================
 
-PUT/GET communication の添字式についてさらに深い議論をする。
-添字には始点、終点、ストライドから成る三つ組を書くことができて、
-通信データは一般に連続であるとは限らない。
+In Fortran, if an array, except dummy argument, is declared as {\tt real a(1:M,1:N)}, 
+the reference to the whole array (i.e., {\tt a} or {\tt a(:,:)} or {a(1:M,1:N)})
+is defined {\em contiguous}. 
+We defined a term {\em contiguous length} as the length how long the data is partially
+contiguous. For example, the contiguous lengths of {\tt a(2,3)} and {\tt a(2:5,3)} are
+1 and 4 respectively.  {\tt a(1:M,1:3)} is two-dimensionally contiguous and has 
+contiguous length $2 \times {\tt M}$.
+{\tt a(1:M-1,1:3)} is one-dimensionally contiguous and has 
+contiguous length $({\tt M} - 1)$.
 
-\paragraph{Requirement to the compiler}
+\requirement
 通信の高速化のためには，十分に長い範囲の連続性を実行時に抽出する必要がある．
 一般にノード間通信で立ち上がりレイテンシ時間がほぼ無視できるようになるデータ量は
 数千バイトであることから，配列や部分配列の1次元め（Fortranでは1番左の添字）が
