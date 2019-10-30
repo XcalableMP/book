@@ -1,3 +1,17 @@
+\subsubsection{static coarrayの高速化}
+
+\subsubsection{allocatable coarrayの高速化}
+
+lower level communication libraryに合わせてallocation methodを選択
+
+RS runtimelib share 事前に巨大領域を取る
+
+実行時allocのコストが大きいとき
+
+RA runtime lib allocation実行時allocのコストが小さいとき
+
+
+
 Figure 3 describes the algorithm of the PUT communication 
 implemented in XMP runtime. First, data contiguity, i.e., how long and periodic the 
 local and remote data objects are contiguous, is detected. In general, an n''-dimensional'' 

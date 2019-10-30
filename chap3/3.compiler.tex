@@ -56,7 +56,7 @@ in the Fortran system, and registers to the communication library.
 \begin{figure}[tbh]
  \begin{center}
   \includegraphics[scale=0.9, trim=0mm 0mm 0mm 0mm, clip]{figs/register-RA-tmp.pdf}\\
-The runtime allocates and regisgers coarrays and passes the address to the user code.
+The runtime allocates and registers coarrays and passes the address to the user code.
  \end{center}
  \begin{center}
 (a) RA method
@@ -81,10 +81,16 @@ To avoid disturbing the execution on the remote image, PUT and GET communication
 are implemented always using Remote Direct Memory Access (RDMA) provided by 
 the communication library (except coarrays with pointer/allocatable structure components). 
 In contrast, local data access is selective between using Direct Memory Access (DMA) or
-using a local buffer. And the suitable algorithm differs depending on the 
-relationship of the three parameters, the size of the local buffer $B$ and the 
+using a local buffer. For the buffer scheme, one of four algorithms will be chosen 
+depending on three parameters, the size of the local buffer $B$ and the 
 local and remote contiguous lengths $N_L$ and $N_R$.
-The Fortran syntax guarantees that $N_L$ is a multiple of $N_R$ or $N_R$ is a multiple of $N_L$.
+$B$ should be large enough to ignore communication latency overhead and we use
+about 400 kilo-bites in default. Unlike the case of MPI message passing,
+coarray PUT/GET communication requires only one local buffer for any numbers of
+other images.
+$N_L$ and $N_R$ can be evaluated at runtime. The Fortran syntax guarantees 
+that $N_L$ is a multiple of $N_R$ or $N_R$ is a multiple of $N_L$.
+An algorithm to get the contiguous length is shown in the paper~\cite{pgas15}.
 
 Table~\ref{tab:putget} summarizes our algorithm for PUT/GET communication for five cases.
 The unit size is the chunk length of the PUT/GET communication.
@@ -100,74 +106,74 @@ or by scattering from the buffer into number of short contiguous data.
  \caption{Summary of the PUT/GET algorithm related to $N_L$, $N_R$ and $B$}
  \label{tab:putget}
  \begin{flushleft}
-  \begin{tabular}{|c||c|c|c|}
+  \begin{tabular}{|@{~}c@{~}|c||@{~}c@{~}|@{~}c@{~}|}
 \hline
-case & scheme 
-& condition 
-& unit size
-\\
+scheme &
+case &
+condition &
+unit size \\
 \hline
 \hline
-0 & DMA   
-& Local data is registered.
-& $\min(N_L, N_R)$   
-\\
+DMA &
+&
+Local data is registered. &
+$\min(N_L, N_R)$ \\
 \hline
-1 & buffering 
-& $N_R \leq B,~ N_R \leq N_L$
-& $N_R$
-\\
-\cline{1-1} \cline{3-4}
+buffering &
+1 & 
+$N_R \leq B,~ N_R \leq N_L$ &
+$N_R$ \\
+\cline{2-4}
+&
 2 &
-& $N_L < N_R \leq B$
-& $N_R$
-\\
-\cline{1-1} \cline{3-4}
+$N_L < N_R \leq B$ &
+$N_R$ \\
+\cline{2-4}
+&
 3 &
-& $N_L < B < N_R$
-& multiple of $N_L$ and up to $B$
-\\
-\cline{1-1} \cline{3-4}
+$N_L < B < N_R$ &
+multiple of $N_L$ ($\leq B$) \\
+\cline{2-4}
+&
 4 &
-& $B < N_R,~ B \leq N_L$
-& $B$ (or less than $B$ at last)
-\\
+$B < N_R,~ B \leq N_L$ &
+$B$ (or less than $B$ at last) \\
 \hline
   \end{tabular}
  \end{flushleft}
  \begin{flushleft}
-  \begin{tabular}{|c||l|l|}
+  \begin{tabular}{|@{~}c@{~}|c||@{~~}l@{~~}|@{~~}l@{~~}|}
 \hline
-case 
-& PUT action for every unit
-& GET action for every unit
-\\
+scheme &
+case &
+PUT action for every unit &
+GET action for every unit \\
 \hline
 \hline
-0 
-& put once
-& get once
-\\
+DMA &
+&
+put once &
+get once \\
 \hline
-1 
-& buffer once and put once
-& get once and unbuffer once
-\\
-\hline
-2 
-& buffer for each $N_L$, and put once
-& get once, and unbuffer for each $N_L$
-\\
-\hline
-3 
-& buffer for each $N_L$, and put once
-& get once, and unbuffer for each $N_L$
-\\
-\hline
-4 
-& buffer once and put once
-& get once and unbuffer once
-\\
+buffering &
+1 &
+buffer once and put once &
+get once and unbuffer once \\
+\cline{2-4}
+&
+2 &
+buffer for each $N_L$, and put once &
+get once, and unbuffer for each $N_L$ \\
+\cline{2-4}
+&
+3 &
+buffer for each $N_L$, and put once &
+get once, and unbuffer for each $N_L$ \\
+\cline{2-4}
+&
+4 &
+buffer once and put once &
+get once and unbuffer once \\
 \hline
   \end{tabular}
  \end{flushleft}
@@ -176,28 +182,10 @@ case
 
 
 %-----------------------------------------------------------------------------
-\subsection{Noblocking communication}
+\subsection{Nonblocking communication}
 %-----------------------------------------------------------------------------
 
-\subsubsection{static coarrayの高速化}
 
-\subsubsection{allocatable coarrayの高速化}
-
-lower level communication libraryに合わせてallocation methodを選択
-
-runtimelibshare事前に巨大領域を取る
-
-実行時allocのコストが大きいとき
-
-
-runtimeliballocation実行時allocのコストが小さいとき
-
-\subsubsection{contiguity検出による高速化}
-次元を跨ぐ連続性抽出
-
-\subsubsection{バッファリング}
-有限サイズ、基礎データから、nlocal, nremote, nbufの関係でアルゴリズム
-commpilerallocationfortranがallocateしてregisterできるとき
 
 
 
