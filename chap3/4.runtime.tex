@@ -4,21 +4,22 @@
 \subsection{Layered Communication Libraries}
 %-----------------------------------------------------------------------------
 
-３種：one sided, collective, atomic. このうちcollectiveとatomicはMPIの機能をそのまま使う。それ以上の工夫はない。one sidedはallocate/freeとput/getと同期。lower-level通信層のバリエーションを吸収するライブラリ層を設けた。階層の図。
+３種：one sided, collective, atomic. このうちcollectiveとatomicはMPIの機能をそのまま使う。
+one sidedはallocate/freeとput/getと同期。
+lower-level通信層のバリエーションを吸収するライブラリ層を設けた。階層の図。
 
 \begin{figure}[tbh]
   \begin{center}
-  \includegraphics[scale=1.0]{figs/layer.pdf}
-  \caption{Layered Communicaion Libraries(左の絵だけでよい)}\label{fig:layer}
+    % trimはleft bottom right topの順
+    \fbox{\includegraphics[trim=42mm 210mm 47mm 0mm, scale=0.7,clip]{figs/softstack.pdf}}
+    \caption{Software stack for coarray features}\label{fig:layer}
   \end{center}
 \end{figure}
 
-cf.\ air:/Users/iwashita/Desktop/coarray/Project\_Coarray/coarray implement 6-1.docx　他
-
 
 To implement one-sided communication, the XcalableMP (XMP) runtime library selects one of the 
-{\em communication libraries}, MPI-3, GASNet, or Fujitsu’s native interface FJ-RDMA, 
-as specified at build time. All coarray data must be {\em registered} to the communication 
+{\bf communication libraries}, MPI-3, GASNet, or Fujitsu’s native interface FJ-RDMA, 
+as specified at build time. All coarray data must be {\bf registered} to the communication 
 library to be referenced or defined via the communication library.
 
 MPI-3 can be selected for all platform on which MPI-3 is implemented. Coarrays are 
@@ -44,6 +45,10 @@ which include confirmation of communication completion.
 
 
 \subsection{Intermediate Communication Library Interface}
+
+サイトの内容に直す
+
+
 
 
 次元の概念とcontiguityを上位層で解決するため結果的に必要なインタフェースは少なくなった。表

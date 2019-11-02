@@ -20,7 +20,7 @@ Fortran 2008仕様で定義されたCoarray機能を実装した。
 また、言語仕様をFortranに準じて、C言語ベースのCoarray機能もサポートした。
 Fortranで定義されるimageはXMP仕様で定義されるnodeに１対１にmappingされるため、
 coarray変数の定義・参照はnode間のput/getの片側通信としてそれぞれ実現される。
-片側通信と同期のためのcommuniation libraryとしてGASNet，MPI3またはFujitsu固有の通信ライブラリを使用する。
+片側通信と同期のためのcommunication libraryとしてGASNet，MPI3またはFujitsu固有の通信ライブラリを使用する。
 
 本章では、coarray機能を高性能で実現するために要求された技術と、その実現方法を示す。
 通信ライブラリの特質から、Coarrayデータの割付けは可能な限り利用者プログラムの実行前に

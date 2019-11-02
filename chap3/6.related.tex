@@ -17,11 +17,15 @@ MPICH and GASNet can be used selectively.
 In the vendors, Cray and Intel fully and Fujitsu partially support the coarray features
 specified in Fortran 2008.
 
+
 Coarray C++は
 
 task間はF2018のcoarrayにある。違いは・・・
 
-Crayはgetをdirectiveで実装
+getのnonblockingは難しい。書式上、獲得したあたいがすぐに使用されることになるため、
+nonblockingのrangeを大きく取れない。
+putでは完了を遅延させるのにたいし、開始を先行させる技術（prefetching）が考えられる。
+Crayはそのためのdirectiveをもつ。
 
 RiceもCrayポインタを使っている。
 Crayポインタはalias analysisで性能を落とす。
