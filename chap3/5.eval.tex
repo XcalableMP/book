@@ -1,36 +1,58 @@
 \section{Evaluation}\label{sec:eval}
 
-\subsection{Aggregated Nonblocking Communication}
+測定環境
+FX100
+HA-PACS
 
 
+\subsection{Ping-pong}
+
+EPCC CAF benchmark
+
+
+%-- fx100-bw.pdf
 \begin{figure}[tbh]
   \begin{center}
   % trimはleft bottom right topの順
-  \includegraphics[scale=0.55,trim=6cm 0cm 4cm 6cm,clip]{figs/latency-16var.pdf}
-
-  latency-16var.pdf\\
-  ２からの４つにして図を大きくする。
-  \caption{n-var latency of pingpong}\label{fig:nvar-pp}
+    \fbox{\includegraphics[trim=41mm 190mm 49mm 3mm, scale=0.8,clip]{figs/fx100-bw.pdf}}
+    \caption{fx100-bw.pdf}\label{fig:fx100-bw}
   \end{center}
 \end{figure}
 
-n-varの効果があった。実際のアプリでもこれはよく起こるパターンである。
-
-
+%-- HAPACS-bw.pdf
 \begin{figure}[tbh]
   \begin{center}
-  \includegraphics[scale=0.55]{figs/himeno.pdf}
-
-  棒グラフにしてLを加えて２つにするかMまで加えて３つにする
-
-  cf.\ air:/Users/iwashita/Desktop/coarray/Project\_Coarray/coarray\_runtime.pdf
-
-  \caption{Himeno XL}\label{fig:himeno}
+  % trimはleft bottom right topの順
+    \fbox{\includegraphics[trim=45mm 188mm 45mm 3mm, scale=0.8,clip]{figs/HAPACS-bw.pdf}}
+    \caption{HAPACS-bw.pdf}\label{fig:HAPACS-bw}
   \end{center}
 \end{figure}
 
+As the result, coarray PUT and GET are slightly outperforms MPI rendezvous 
+message-passing for large data.
+In \fig{fx100-bw}, the bandwidth of PUT and GET are respectively 
++0.1\% to +18\% and -0.4\% to +9.3\% higher than MPI rendezbous in the 
+rendezvous range of 32k through 32M bytes.
+Also in \fig{HAPACS-bw}, respectively +0.3\% to +0.8\% and 
++0.1\% to +1.3\% higher in the rendezvous range of 512k through 32M bytes.
 
-どういうパターンか分析して説明。n個のcontiguousなnonblocking comm.
+However, coarray PUT and GET are clearly slower than the MPI eager 
+communication in the range of shorter length data.
+
+分析
+PUT/GETがeagerに比べて遅い理由は、ack待ちとsync allのオーバヘッド
+eagerにはこのようなオーバヘッドがない。RDMAでないのでコピーがあるけれども。
+
+
+%-- pingpong-code.pdf
+\begin{figure}[tbh]
+  \begin{center}
+  % trimはleft bottom right topの順
+    \fbox{\includegraphics[trim=24mm 118mm 24mm 4mm, scale=0.7,clip]{figs/pingpong-code.pdf}}
+    \caption{pingpong-code.pdf}\label{fig:pingpong-code}
+  \end{center}
+\end{figure}
+
 
 
 \subsection{OTHERS}
@@ -67,24 +89,6 @@ n-varの効果があった。実際のアプリでもこれはよく起こるパ
   \end{center}
 \end{figure}
 
-%-- HAPACS-bw.pdf
-\begin{figure}[tbh]
-  \begin{center}
-  % trimはleft bottom right topの順
-    \fbox{\includegraphics[trim=45mm 188mm 45mm 3mm, scale=0.8,clip]{figs/HAPACS-bw.pdf}}
-    \caption{HAPACS-bw.pdf}\label{fig:HAPACS-bw}
-  \end{center}
-\end{figure}
-
-%-- fx100-bw.pdf
-\begin{figure}[tbh]
-  \begin{center}
-  % trimはleft bottom right topの順
-    \fbox{\includegraphics[trim=41mm 190mm 49mm 3mm, scale=0.8,clip]{figs/fx100-bw.pdf}}
-    \caption{fx100-bw.pdf}\label{fig:fx100-bw}
-  \end{center}
-\end{figure}
-
 %-- fx100-pipo.pdf
 \begin{figure}[tbh]
   \begin{center}
@@ -94,12 +98,12 @@ n-varの効果があった。実際のアプリでもこれはよく起こるパ
   \end{center}
 \end{figure}
 
-%-- himeno-K-nonblock.pdf
+%-- himeno-graph.pdf
 \begin{figure}[p]
   \begin{center}
   % trimはleft bottom right topの順
-    \fbox{\includegraphics[trim=37mm 34mm 37mm 4mm, scale=0.8,clip]{figs/himeno-K-nonblock.pdf}}
-    \caption{himeno-K-nonblock.pdf}\label{fig:himeno-K-nonblock}
+    \fbox{\includegraphics[trim=37mm 34mm 37mm 4mm, scale=0.8,clip]{figs/himeno-graph-r2.pdf}}
+    \caption{himeno-graph-r2.pdf}\label{fig:himeno-graph}
   \end{center}
 \end{figure}
 
@@ -110,19 +114,11 @@ n-varの効果があった。実際のアプリでもこれはよく起こるパ
 \begin{figure}[tbh]
   \begin{center}
   % trimはleft bottom right topの順
-    \fbox{\includegraphics[trim=43mm 144mm 43mm 3mm, scale=0.8,clip]{figs/nonblock-fig.pdf}}
+    \fbox{\includegraphics[trim=43mm 144mm 43mm 3mm, scale=0.8,clip]{figs/nonblock-fig-r2.pdf}}
     \caption{nonblock-fig.pdf}\label{fig:nonblock-fig}
   \end{center}
 \end{figure}
 
-%-- pingpong-code.pdf
-\begin{figure}[tbh]
-  \begin{center}
-  % trimはleft bottom right topの順
-    \fbox{\includegraphics[trim=24mm 118mm 24mm 4mm, scale=0.7,clip]{figs/pingpong-code.pdf}}
-    \caption{pingpong-code.pdf}\label{fig:pingpong-code}
-  \end{center}
-\end{figure}
 
 %register-CA-tmp.pdf
 %register-RA-CA-tmp.pdf

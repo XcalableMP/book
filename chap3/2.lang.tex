@@ -246,12 +246,12 @@ referrences in the coarray, the nonblocking communication should be restricted.
 
 \requirement
 To reduce the latency overhead, nonblocking one-sided communication is effective.
-The compiler should generate nonblocking Get communication as long as possible.
+The compiler should generate nonblocking GET communication as long as possible.
 In usual case, the completion point of the nonblocking is the end of the segment, as
 shown in \fig{sync-ex}.  However, the posibility to meet the condition shown in
-\fig{block-ex} should be took account. If the Put communication is always in blocking, 
-only the flow dependency should be care; the previous Put communication (line~2) 
-should be completed before the following Get communication (line~3).
+\fig{block-ex} should be took account. If the PUT communication is always in blocking, 
+only the flow dependency should be care; the previous PUT communication (line~2) 
+should be completed before the following GET communication (line~3).
 
 %-----------------------------------------------------------------------------
 \subsection{Subarrays and Data Contiguity}
@@ -276,7 +276,7 @@ contiguous length $({\tt M} - 1)$.
 十分に長い連続データとして通信する技術が必要である．
 【fx100-latencyのグラフから数千バイトを言ってもよい。】
 
-Get通信と同様，a(i,j)[k]は代わりに全体配列にも部分配列にもなれるので，
+GET通信と同様，a(i,j)[k]は代わりに全体配列にも部分配列にもなれるので，
 coindexed variableについても次元を跨いだ連続性の抽出が必要である．
 それに加えて、ローカル側、すなわち、右辺式データの連続性も意識に入れなければならない。
 高速な通信を実現するには，左辺と右辺で共通に連続な区間を検出してその単位で通信を反復するか，
