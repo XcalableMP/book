@@ -38,9 +38,18 @@ When the execution encounters the {\tt END TASK} directive corresponding to the
 Unless the {\tt TASK} and {\tt END TASK} directives are used, coarray features are 
 compatible to the ones of the Fortran standard. 
 
-%多重タスク実行がある場合、それぞれのタスクでcoarrayプログラムが原則として独立に実行される。
-%あるタスクでallocateしたcoarrayは、そのタスクの有効範囲を超えない範囲で、
-%タスクを実行するnode間で共有されるのが原則である。同期の範囲も原則としてその中である。
+%   Coarray features can be used inside the TASK directive blocks. As default,
+%   each coarray image is mapped one-to-one to a node of the current executing 
+%   task. I.e., num_images() returns the number of nodes of the current executing 
+%   task and this_image() returns each image index in the task.
+%      There are two directives to change the default rule above. A COARRAY 
+%   directive corresponding to a coarray declaration changes the image index set 
+%   of the specified coarray with the one of the specified nodes. An IMAGE 
+%   directive corresponding to one of a SYNC ALL statement, a SYNC IMAGES 
+%   statement, a call statement calling CO_SUM, CO_MAX, CO_MIN or CO_BROADCAST 
+%   changes the current image index set with the one of the specified nodes.
+%   See the language spacifications [3].
+
 
 \requirement
 Memory management is necessary to cope with changes of the executing images.
@@ -90,14 +99,57 @@ Thanks to the syn-metric memory allocation rule, all executing images can have
 the same symmetrical memory layout, which makes it possible to calculate the address 
 of the remote coarray with no prior inter-image communication.
 
+% 2. Declaration
+%   Either static or allocatable coarray data objects can be used in the program. 
+%   Use- and host-associations are available but common- or equivalence-
+%   association are not allowed in conformity with the Fortran2008 standard.
+%   Current restrictions against Fortran2008 coarray features:
+%     * Rank (number of dimensions) of an array may not be more than 7.
+%     * A coarray cannot be of a derived type nor be a structure component.
+%     * A coarray cannot be of quadruple precision, i.e., 16-byte real or 32-byte 
+%       complex.
+%     * Interface block cannot contains any specification of coarrays. To describe
+%       explicit interface, host-assocication (with internal procedure) and use-
+%       association (with module) can be used instead.
+%     * A pointer component of a derived-type coarray is not allowed.
+%     * An allocatable component of a derived-type coarray cannnot be referrenced
+%       as a coindexed object.
+%     * A derived-type coarray cannot be defined as allocatable.
+
+% 2.1  Static Coarray
+%   E.g.
+%       real(8) :: a(100,100)[*], s(1000)[2,2,*]
+%       integer, save :: n[*], m(3)[4,*]
+%   The data object is allocated previously before the execution of the user 
+%   program.  A recursive procedure cannot have a non-allocatable coarray without 
+%   SAVE attribute.
+%   Current restrictions against Fortran2008 coarray features:
+%     * Each lower/upper bound of the shape must be such a simple expression that 
+%       is an integer constant literal, a simple integer constant expression, or
+%       a reference of an integer named constant defined with a simple integer 
+%       constant expression.
+%     * A coarray cannot be initialized with initialization or with a DATA 
+%       statement.
+%     
+% 2.2  Allocatable Coarray
+%   E.g.
+%       real(8), allocatable :: a(:,:)[:], s(:)[:]
+%       integer, allocatable, save :: n[:], m(:)[:,:]
+%   The data object is allocated with an ALLOCATE statement as follows:
+%       allocate ( a(100,100)[*], s(1000)[2,2,*] )
+%   The allocated coarray is deallocated with an explicit DEALLOCATE statement or 
+%   with an automatic deallocation at the end of the scope of the name unless it 
+%   has SAVE attribute.
+%   Current restrictions against fortran2008 coarray features:
+%     * A scalar coarray cannot be allocatable.
+%     * An allocatable coarray as a dummy argument cannot be allocated or 
+%       deallocated inside the procedure.
+
 \requirement
 The language specification suggests the compiler to maintain the symmetric memory
 allocation rule and to use it for efficient remote address calculation.
 
-
-automatic deallocationの生成が必要なことをどこかに。deregisterと一緒に。
-片側通信を使ってremote coarrayをアクセスするためには、registerがいることを先に。
-
+automatic deallocationの生成が必要なことをどこかに書いたか？
 
 %-----------------------------------------------------------------------------
 \subsection{Communications}
@@ -137,7 +189,7 @@ Fortranの配列代入文を使えば、配列から配列へのPUT通信を記�
 通信バッファをできる限り多重にしない工夫が必要である。
 右辺が配列の参照だけの場合はゼロコピー通信とすることが望ましい。
 また、次のimage制御文によって同期が行われるまでPUTされたデータは他のimageから
-参照されないので、実行はPUT通信の完了を待たないで次に進むことができる（nonblocking communication）。
+参照されないので、実行はPUT通信の完了を待たないで次に進むことができる（non-blocking communication）。
 
 
 %===========================================================
@@ -224,7 +276,7 @@ from crossing the {\tt sync all} in line~10.
 各イメージの中では、従来のFortran仕様に従う依存関係の維持が必要である。
 non-coarrayデータに関しては従来とおりだが、coarrayについて注意が必要。
 In order to keep data dependency among the definitions and 
-referrences in the coarray, the nonblocking communication should be restricted.
+references in the coarray, the non-blocking communication should be restricted.
 \fig{block-ex} にdata dependencyに気をつけなければならない例を示す。
 同じリモートデータに対して同じsegment内で複数回アクセスする場合である。
 
@@ -245,10 +297,10 @@ referrences in the coarray, the nonblocking communication should be restricted.
 
 
 \requirement
-To reduce the latency overhead, nonblocking one-sided communication is effective.
-The compiler should generate nonblocking GET communication as long as possible.
-In usual case, the completion point of the nonblocking is the end of the segment, as
-shown in \fig{sync-ex}.  However, the posibility to meet the condition shown in
+To reduce the latency overhead, non-blocking one-sided communication is effective.
+The compiler should generate non-blocking GET communication as long as possible.
+In usual case, the completion point of the non-blocking is the end of the segment, as
+shown in \fig{sync-ex}.  However, the possibility to meet the condition shown in
 \fig{block-ex} should be took account. If the PUT communication is always in blocking, 
 only the flow dependency should be care; the previous PUT communication (line~2) 
 should be completed before the following GET communication (line~3).

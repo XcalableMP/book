@@ -92,7 +92,7 @@ in the Fortran system, and registers to the communication library.
 \subsection{Initial Allocation}
 %===========================================================
 
-Static coarrays are allocated and registered in the initializaton subroutines 
+Static coarrays are allocated and registered in the initialization subroutines 
 {\tt xmpf\_init\_{\it foo}}. 
 
 On the {\bf Runtime-library Sharing (RS) method} and 
@@ -102,11 +102,14 @@ as follows.
 \begin{itemize}
 \item
 In the first pass, all sizes of static (non-allocatable) coarrays are summed.
-The size of each static coarray is evaluated form the declaration 
-statement of each coarray. Because the dimensions may have any 
-integer constant expression, the coarray translator 
-evaluates name of constants, binary and unary operations, and 
-basic Fortran intrinsic functions such as min/max and sum.
+The size of each static coarray is evaluated form the lower and upper bounds
+specified in the dimension declaration statement of each coarray.
+The lower and upper bound expressions, possibly including binary and unary
+operations, reference to name of constants, and basic intrinsic functions 
+such as min/max and sum, are evaluated by constant folding techniques.
+Since the size of the structure that contains allocatable or pointer 
+components differs depending on for the target compiler, the coarray translator
+get the necessary parameters to calculate the size of structures at the build time.
 \item
 Then, the total size of static coarrays is allocated and the address
 and the size is registered to the underlying communication library.
@@ -298,17 +301,15 @@ GET通信をできる限りnon-blockingとし、そして、その完了待ち�
 \fig{block-ex}に示したような、同じsegment内で同じリモートデータへ書いて読むような
 ケースは大変まれで、殆どの場合には次のimage control statementまで遅延できる。
 添字式やイメージ番号が定数でないことが多いので、コンパイル時の判定では遅い方に倒れてしまう。
-まれなケースを除外するための実行時判定が望まれる。
-
-正確な実行時判定を行うためには、現在non-blocking PUT通信中のcoarrayのアドレスのrangeと相手のimage番号を
-ハッシュテーブルに記憶し、GET通信を行う前にそのrangeとimage番号に重なりがないことをチェックし、
-重なりがあったらそこでPUT通信を完了させる、という方法が考えられる。
-しかしこれでは、重なりが無い通常のケースでも重なりのチェックのコストが大きい。
-コンパイラでの解析と動的なチェックを併用する、正確さが劣ってもより高速な方法が望ましい。
+まれなケースだけを軽いコストで正しく除外できる実行時判定が望まれる。
 
 現在の実装では、実行時の環境変数によってblockingとnon-blocking通信を選択する。
 以下の条件に該当する場合には、低速となるblockingを選択しなければならない。
-　明示的な同期なしで、リモートのcoarray変数に対して定義後の参照がある。
+　リモートのcoarrayデータを更新した後で、同じセグメントの中で、同じデータを参照している。
+ほとんどの場合には該当しないことを利用者が分かるので、non-blockingのオプションを
+選択することを期待する。
+
+
 
 
 

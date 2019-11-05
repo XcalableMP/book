@@ -18,8 +18,6 @@ In the vendors, Cray and Intel fully and Fujitsu partially support the coarray f
 specified in Fortran 2008.
 
 
-Coarray C++は
-
 task間はF2018のcoarrayにある。違いは・・・
 
 getのnonblockingは難しい。書式上、獲得したあたいがすぐに使用されることになるため、
@@ -30,4 +28,23 @@ Crayはそのためのdirectiveをもつ。
 RiceもCrayポインタを使っている。
 Crayポインタはalias analysisで性能を落とす。
 
+
+\section{Future Works}\label{sec:related}
+
+Coarray C++はObject oriented programmingになれた人には自然な実装と感じるかもしれない。
+我々の目指すCoarray Cはこれとは違い、HPCプログラムをCで書いている人向けに修正を最小限
+にするものである。また、coarrayを抽象性の高い概念で定義するのではなく、
+単にアドレスと長さで特定できるメモリの範囲と定義したい。これによって一般の
+Cプログラマがキャストや引数渡しを使って同じ領域を目的によって連続配列や多次元配列
+や単に先頭アドレスへのvoidポインタなどとして自由に使い回すように扱いたい。
+これは美しくはないが、Cの大きなプログラムを抱えている利用者には必要である。
+仕様書の定義には曖昧さが残っているので、まだ修正が必要である。
+Fortranと同じような性能が出せるもので、かつ、FortranのCoarrayとの互換性を持たせたい。
+
+Non-blocking PUT communication 
+正確な実行時判定を行うためには、現在non-blocking PUT通信中のcoarrayのアドレスのrangeと相手のimage番号を
+ハッシュテーブルに記憶し、GET通信を行う前にそのrangeとimage番号に重なりがないことをチェックし、
+重なりがあったらそこでPUT通信を完了させる、という方法が考えられる。
+しかしこれでは、重なりが無い通常のケースでも重なりのチェックのコストが大きい。
+コンパイラでの解析と動的なチェックを併用する、正確さが劣ってもより高速な方法が望ましい。
 
