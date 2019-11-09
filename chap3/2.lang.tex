@@ -1,4 +1,4 @@
-\section{Coarray Features and the Key of the Implementation}\label{sec:lang}
+\section{Requirements from Coarray Features}\label{sec:lang}
 
 XMP Fortran language specification supports a major part of coarray features defined in 
 Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
@@ -18,25 +18,28 @@ In the Fortran standard, an {\bf image} is defined as a instance of a program.
 Each image executes the same program and has its own data individually 
 (SPMD: Single Program/Multiple Data).
 Each image has a different image index, which is one of $1, \cdots, n$, 
-where $n$ is the number of images. 
-While Fortran standard does not specify actually where each image is executed, 
-XMP defines that the images are mapped in tern to the executing nodes. 
-Therefore, image $k$ is always executed simply on executing node $k$, 
+where $n$ is the number of images determined at runtime. 
+While the Fortran standard does not define where each image is executed, 
+XMP defines the mapping of the images to the executing nodes as follows;
+image $k$ is always executed on executing node $k$, 
 where $1 \leq k \leq n$ and 
 $n$ is the number of images and also the number of the executing nodes. 
+In addition, since each MPI rank number of {\tt MPI\_COMM\_WORLD} (0-origin) is 
+always mapped to an XMP node number in order, local data on image $k$ can be
+accessed with MPI functions as data on rank $(k - 1)$.
 
 Note that the executing nodes can be a subset of the entire (initial) node set. 
 For example, two distinct node sets can execute two coarray subprograms concurrently.
-When the execution encounters a {\tt TASK} directive specified with a subset of nodes,
-the corresponding subset of the images will be the executing images for the
-TASK region. 
-The number of images and my image number, which are given by inquire functions
+The first executing images at the start of the program is the entire images.
+Coarray features are compatible to the ones of the Fortran standard unless 
+the {\tt TASK} and {\tt END TASK} directives are used.
+If the execution encounters a {\tt TASK} directive specified with a subset of nodes, 
+the corresponding subset of the images will be the executing images for the task region. 
+The current number of images and my image number, which are given by inquire functions
 {\tt num\_images} and {\tt this\_image}, also match with the executing images, and
 the {\tt SYNC\_IMAGES} statement synchronizes among the executing images.
 When the execution encounters the {\tt END TASK} directive corresponding to the
 {\tt TASK} directive, the set of executing image is reinstated.
-Unless the {\tt TASK} and {\tt END TASK} directives are used, coarray features are 
-compatible to the ones of the Fortran standard. 
 
 %   Coarray features can be used inside the TASK directive blocks. As default,
 %   each coarray image is mapped one-to-one to a node of the current executing 
@@ -50,9 +53,10 @@ compatible to the ones of the Fortran standard.
 %   changes the current image index set with the one of the specified nodes.
 %   See the language spacifications [3].
 
-
 \requirement
-Memory management is necessary to cope with changes of the executing images.
+%Memory management is necessary to cope with changes of the executing images.
+The runtime library should change the executing image set and my position of the set 
+at the entry point of the task, and reinstate them at the exit point of the task.
 
 %The XMP compiler manages these values in stack.
 %タスク実行のときのスタックの使い方、構文が入れ子なので同じレベルに戻ることができること。
@@ -65,12 +69,14 @@ Memory management is necessary to cope with changes of the executing images.
 A {\bf coarray} or a coarray variable is a variable that can be referred from the other images. 
 A coarray with the {\tt ALLOCATABLE} attribute is called an {\bf allocatable coarray}, 
 otherwise called a non-allocatable coarray. A non-allocatable coarray may not be a pointer 
-and must have an explicit shape and the {\tt SAVE} attribute. 
-In order to help intuitive understanding, we call a non-allocatable coarray as 
-a {\bf static coarray}. The lifetime of a static coarray is throughout execution of the program. 
+and must have an explicit shape and the {\tt SAVE} attribute. In order to help 
+intuitive understanding, we call a non-allocatable coarray as a {\bf static coarray}. 
+The lifetime of a static coarray is throughout execution of the program on all images even if
+the coarray is declared in a procedure called with a subset of images.
+
 On the other hand, an allocatable coarray is allocated with the {\tt ALLOCATE} statement and 
-freed either explicitly with the {\tt DEALLOCATE} statement or implicitly at the end of the scope
-in which the {\tt ALLOCATE} statement is executed ({\bf automatic deallocation}).
+freed either explicitly with the {\tt DEALLOCATE} statement or implicitly at the end of the 
+scope in which the {\tt ALLOCATE} statement is executed ({\bf automatic deallocation}).
 
 Static coarrays can be declared as scalar or array variables as follows:
 \begin{verbatim}
@@ -146,10 +152,16 @@ of the remote coarray with no prior inter-image communication.
 %       deallocated inside the procedure.
 
 \requirement
-The language specification suggests the compiler to maintain the symmetric memory
-allocation rule and to use it for efficient remote address calculation.
+Static coarrays must be allocated and made accessible remotely
+before the execution of the user program, and 
+made inaccessible remotely and be freed after the execution of the user program.
+In contrast, 
+allocatable coarrays must be allocated and made accessible remotely
+when the {\tt ALLOCATE} statement is encountered, and 
+made inaccessible remotely and be freed when the {\tt DEALLOCATE} statement or 
+the exit point of the scope that the corresponding {\tt ALLOCATE} statement is encountered 
+is encountered.
 
-automatic deallocationの生成が必要なことをどこかに書いたか？
 
 %-----------------------------------------------------------------------------
 \subsection{Communications}
@@ -188,8 +200,11 @@ Fortranの配列代入文を使えば、配列から配列へのPUT通信を記�
 配列代入文では、一般には右辺の評価結果をFortranシステムが一時領域に置くが、
 通信バッファをできる限り多重にしない工夫が必要である。
 右辺が配列の参照だけの場合はゼロコピー通信とすることが望ましい。
-また、次のimage制御文によって同期が行われるまでPUTされたデータは他のimageから
-参照されないので、実行はPUT通信の完了を待たないで次に進むことができる（non-blocking communication）。
+
+% ダブリ。同期の方で言う。
+%また、次のimage制御文によって同期が行われるまでPUTされたデータは他のimageから
+%参照されないので、実行はPUT通信の完了を待たないで次に進むことができる
+%（non-blocking communication）。
 
 
 %===========================================================
@@ -208,13 +223,15 @@ Coindexed objects can appear in most expressions.
 
 \requirement
 ローカル側は、獲得したデータがすぐに消費されることからnon-blocking化は適さない。
-できる限りバッファリングを回避してゼロコピーとすることで効率化したい。
-受信側（local側）をゼロコピーにするため、最適化が有効。右辺に１つのcoindexed-object1しかない
-配列代入文、例えば、
+バッファリングを回避してゼロコピーとすることで効率化したい。
+通常は式の引用に対して（それが配列式であっても）ライブラリに変換するが、
+右辺に１つのcoindexed-objectしかない配列代入文は、最適化として文全体をライブラリに
+変換する。例えば、
 \begin{verbatim}
       a(1:M,1:N) = b(1:M,1:N)[k]
 \end{verbatim}
-では、GET通信の受信先をバッファでなく直接変数aにすることで、ゼロコピーにできる場合がある。
+では、aがDMAの要件を満たす場合には、受信先をバッファでなく直接aにすることで、
+ゼロコピーにできる。
 
 
 %-----------------------------------------------------------------------------
