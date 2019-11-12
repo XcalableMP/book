@@ -1,23 +1,23 @@
-\section{Data Communication Directives}
+\section{Data Communication}
 
-\subsection{{\bf shadow} Directive / {\bf reflect} Construct}
+\subsection{{\bf shadow} Directive and {\bf reflect} Construct}
 
-The stencil computation frequently appears in scientific computations,
-where array elements a[i-1] and a[i+1] are referenced to update a[i]. If
-a[i] is on the boundary area of a distributed array on a node, a[i+1]
-may reside on another node.
+Stencil computation frequently appears in scientific computations,
+where array elements \|a[i-1]| and \|a[i+1]| are referenced to update
+\|a[i]|. If \|a[i]| is on the boundary region of a block-distributed
+array on a node, \|a[i+1]| may reside on another (neighboring) node.
 
-Because it costs largely to copy a[i+1] from the neighboring node to
-update each a[i], a technique of copying collectively elements on the
+Since it involves large overhead to copy \|a[i+1]| from the neighboring node to
+update each \|a[i]|, a technique of copying collectively elements on the
 neighboring node to the area added to the distributed array on each node
-is usually adopted. In XMP, such additional region is called “shadow.”
+is usually adopted. In XMP, such additional area is called ``shadow.''
 
-\subsubsection{Declare Shadow}
+\subsubsection{Declaring Shadow}
 
-\paragraph{Widths of lower/upper bounds are the same}
+%\paragraph{Widths of lower/upper bounds are the same}
 
-Shadow areas can be declared with the shadow directive. In the example
-below, an array a has shadow areas of size one on both the lower and
+Shadow areas can be declared with the \|shadow| directive. In the example
+below, an array \|a| has shadow areas of width one on both the lower and
 upper bounds.
 
 \begin{XCexample}
@@ -40,22 +40,23 @@ real :: a(16)
 
 \begin{figure}
   \centering
-  \includegraphics{figs/shadow.png}
+  \includegraphics[width=\textwidth]{figs/shadow.png}
 \end{figure}
 
-In the figure above, colored elements are those that each node owns and white ones are shadow.
+In the figure above, colored elements are those that each node owns and
+white ones are shadow.
 
 \begin{mynote}
-Distributed arrays in a cyclic manner cannot have shadow.  
+  Arrays distributed in a cyclic manner cannot have shadow.  
 \end{mynote}
 
-\paragraph{Widths of lower/upper bounds are different}
+%\paragraph{Widths of lower/upper bounds are different}
 
-For some programs, it is natural that the widths of the shadow area on
+In some programs, it is natural that the widths of the shadow area on
 the lower and upper bounds are different. There is also a case where the
 shadow area exists only on either of the bounds. In the example below,
-it is declared that a distributed array a has a shadow area of width one
-only on the upper bound.
+it is declared that a distributed array \|a| has a shadow area of width
+one only on the upper bound.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -77,19 +78,19 @@ real :: a(16)
 
 \begin{figure}
   \centering
-  \includegraphics{figs/shadow_uneven.png}
+  \includegraphics[width=\textwidth]{figs/shadow_uneven.png}
 \end{figure}
 
 The values on the left- and right-hand sides of a colon designate the
 widths on the lower and upper bounds, respectively.
 
-\subsubsection{Update Shadow}
+\subsubsection{Updating Shadow}
 
-\paragraph{General}
+%\paragraph{General}
 
-To copy data to shadow areas from neighboring nodes, use the reflect
-directive. In the example below, an array a having shadow areas of width
-one on each the upper and lower bounds is reflected.
+To copy data to shadow areas from neighboring nodes, use the \|reflect|
+construct. In the example below, the shadow areas of an array \|a| that
+are of width one on both the upper and lower bounds are updated.
 
 \begin{XCexample}
 #pragma xmp reflect (a)
@@ -110,32 +111,32 @@ enddo
 
 \begin{figure}
   \centering
-  \includegraphics{figs/reflect.png}
+  \includegraphics[width=\textwidth]{figs/reflect.png}
 \end{figure}
 
-With this reflect directive, in XMP/C, node p[1] sends an element a[4]
-to the shadow area on the upper bound on node p[0] and a[7] to the
-shadow area on the lower bound on p[2]; p[0] sends an element a[3] to
-the shadow area on the lower bound on p[1], and p[2] sends a[8] to the
-shadow area on the upper bound on p[1].
+With this reflect directive, in XMP/C, node \|p[1]| sends an element
+\|a[4]| to the shadow area on the upper bound on node \|p[0]| and
+\|a[7]| to the shadow area on the lower bound on \|p[2]|; \|p[0]| sends
+an element \|a[3]| to the shadow area on the lower bound on \|p[1]|, and
+\|p[2]| sends \|a[8]| to the shadow area on the upper bound on \|p[1]|.
 
-Similarly, in XMP/Fortran, node p(2) sends an element a(5) to the shadow
-area on the upper bound on node p(1) and a(8) to the shadow area on the
-lower bound on p(3); p(1) sends an element a(4) to the shadow area on
-the lower bound on p(2), and p(3) sends a(9) to the shadow area on the
-upper bound on p(2).
+Similarly, in XMP/Fortran, node \|p(2)| sends an element \|a(5)| to the
+shadow area on the upper bound on node \|p(1)| and \|a(8)| to the shadow
+area on the lower bound on \|p(3)|; \|p(1)| sends an element \|a(4)| to
+the shadow area on the lower bound on \|p(2)|, and \|p(3)| sends \|a(9)|
+to the shadow area on the upper bound on \|p(2)|.
 
-\paragraph{Specify Width}
+%\paragraph{Specify Width}
 
 The default behavior of a reflect directive is to update the whole of
-the shadow area declared by a shadow directive. However, there are some
-cases where a specific part of the shadow area is to be updated to
-reduce the communication size in a point of the code.
+the shadow area declared by the \|shadow| directive. However, there are
+some cases where a specific part of the shadow area is to be updated to
+reduce the communication size at a point of the code.
 
-To update only a specific part of the shadow area, add the width clause
-to the reflect directive.
+To update only a specific part of the shadow area, add the \|width|
+clause to the \|reflect| directive.
 
-The values on the left- and right-hand sides of a colon in the width
+The values on the left- and right-hand sides of a colon in the \|width|
 clause designate the widths on the lower and upper bounds to be updated,
 respectively. In the example below, only the shadow area on the upper
 bound is updated.
@@ -150,40 +151,39 @@ bound is updated.
 
 \begin{figure}
   \centering
-  \includegraphics{figs/reflect_width.png}
+  \includegraphics[width=\textwidth]{figs/reflect_width.png}
 \end{figure}
 
 \begin{mynote}
-If the widths of the shadow areas to be updated on
-the upper and lower 
-bounds are equal, that is, for example, width(1:1), you can abbreviate
-it as width(1).
+  If the widths of the shadow areas to be updated on the upper and lower 
+  bounds are equal, that is, for example, \|width(1:1)|, you can
+  abbreviate it as \|width(1)|.
 \end{mynote}
 
 \begin{mynote}
-It is not possible to update the shadow area on a
-particular node. 
+  It is not possible to update the shadow area on a particular node
+  because \|reflect| is a collective operation.
 \end{mynote}
 
-If no shadow area is specified on the lower bound, the reflect directive
-does not update it with or without a width clause. The below figure
-illustrates the behavior of a reflect directive for a distributed array
-a having a shadow area of width one only on the upper bound.
+% If no shadow area is specified on the lower bound, the reflect directive
+% does not update it with or without a width clause. The below figure
+% illustrates the behavior of a reflect directive for a distributed array
+% a having a shadow area of width one only on the upper bound.
 
-\begin{figure}
-  \centering
-  \includegraphics{figs/reflect_uneven.png}
-\end{figure}
+% \begin{figure}
+%   \centering
+%   \includegraphics{figs/reflect_uneven.png}
+% \end{figure}
 
-\paragraph{Update periodic shadow}
+%\paragraph{Update periodic shadow}
 
-The reflect directive does not update either the shadow area on the
+The \|reflect| directive does not update either the shadow area on the
 lower bound on the leading node or that on the upper bound on the last
 node. However, the values in such areas are needed for stencil
 computation if the computation needs a periodic boundary condition.
 
-To update such areas, add a periodic qualifier into a width
-clause. Let’s look at the following example where an array a having
+To update such areas, add a \|periodic| qualifier into a width
+clause. Let’s look at the following example where an array \|a| having
 shadow areas of width one on both the lower and upper bounds appears.
 
 \begin{XCexample}
@@ -196,29 +196,29 @@ shadow areas of width one on both the lower and upper bounds appears.
 
 \begin{figure}
   \centering
-  \includegraphics{figs/reflect_periodic.png}
+  \includegraphics[width=\textwidth]{figs/reflect_periodic.png}
 \end{figure}
 
-The periodic qualifier has the following effects, in addition to that of
-a normal reflect directive: in XMP/C, node p[0] sends an element a[0] to
-the shadow area on the upper bound on node p[3], and p[3] sends a[15] to
-the shadow area on the lower bound on p[0]; in XMP/Fortran, node p(1)
-sends an element a(1) to the shadow area on the upper bound on node
-p(4), and p(4) sends a(16) to the shadow area on the lower bound on
-p(1).
+The \|periodic| qualifier has the following effects, in addition to that of
+a normal \|reflect| directive: in XMP/C, node \|p[0]| sends an element
+\|a[0]| to the shadow area on the upper bound on node \|p[3]|, and
+\|p[3]| sends \|a[15]| to the shadow area on the lower bound on \|p[0]|;
+in XMP/Fortran, node \|p(1)| sends an element \|a(1)| to the shadow area
+on the upper bound on node \|p(4)|, and \|p(4)| sends \|a(16)| to the
+shadow area on the lower bound on \|p(1)|.
 
-\begin{mynote}
-If the widths of the shadow areas to be updated on
-the upper and lower 
-bounds are equal, as shown by width(/periodic/1:1) in the above example,
-you can abbreviate it as width(/periodic/1).
-\end{mynote}
+% \begin{mynote}
+%   If the widths of the shadow areas to be updated on
+% the upper and lower 
+% bounds are equal, as shown by width(/periodic/1:1) in the above example,
+% you can abbreviate it as width(/periodic/1).
+% \end{mynote}
 
-\subsubsection{Multi-dimensional Shadow}
+%\subsubsection{Multi-dimensional Shadow}
 
-The shadow directive and reflect construct can be applied to distributed
-arrays multiple dimensions. The following programs are the examples for
-two-dimensional distribution.
+The \|shadow| directive and \|reflect| construct can be applied to
+array distributed in multiple dimensions. The following programs are the
+examples for two-dimensional distribution.
 
 \begin{XCexample}
 #pragma xmp nodes p[3][3]
@@ -247,14 +247,14 @@ real :: a(9,9)
   \includegraphics{figs/multi1.png}
 \end{figure}
 
-The central node receives the shadow data from the surrounding eight
-nodes. The shadow areas of the other nodes are also updated, which is
-omitted in the figure.
+The central node receives data from the surrounding eight
+nodes to update its shadow areas. The shadow areas of the other nodes
+are also updated, which is omitted in the figure.
 
 For some applications, data from ordinal directions are not
 necessary. In such a case, the data communication from/to the ordinal
-directions can be avoided by adding an orthogonal clause to a reflect
-construct.
+directions can be avoided by adding an \|orthogonal| clause to a
+\|reflect| construct.
 
 \begin{XCexample}
 #pragma xmp reflect (a) orthogonal
@@ -304,27 +304,32 @@ real :: a(9,9)
   \includegraphics{figs/1of2.png}
 \end{figure}
 
-In the array specified in the shadow directive, 0 is set as the shadow
-width in dimensions which are not distributed.
+For the array \|a|, 0 is specified as the shadow width in the dimensions
+which are not distributed.
 
 
 \subsection{{\tt gmove} Construct}
 
-You can describe a communication for distributed arrays in the form of
-assignment statements by using gmove directive.
+You can specify a communication for distributed arrays in the form of
+assignment statements by using the \|gmove| construct.
 
-There are three modes in gmove; “collective mode”, “in mode,” and “out
-mode.” While collective mode executes two-sided communication among the
-executing nodes, in/out modes execute one-sided communication among
-tasks with a task directive. While in mode uses get communication, out
-mode uses put communication.
+There are three modes of \|gmove|; ``collective mode,'' ``in mode,'' and
+``out mode.''
+% While collective mode executes two-sided communication among the
+% executing nodes, in/out modes execute one-sided communication among
+% tasks with a task directive. While in mode uses get communication, out
+% mode uses put communication.
 
 \subsubsection{Collective Mode}
 
-\paragraph{Distributed array}
+%\paragraph{Distributed array}
 
-Copying a part of array a to array b. Array assignment statements in a
-gmove construct uses triplet.
+% Copying a part of array a to array b. Array assignment statements in a
+% gmove construct uses triplet.
+
+The copy operation involved by a {\it collective} \|gmove| is performed
+collectively, and results in implicit synchronization among the 
+executing nodes.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -352,16 +357,12 @@ integer :: a(16), b(16)
 
 \begin{figure}
   \centering
-  \includegraphics{figs/gmove.png}
+  \includegraphics[width=\textwidth]{figs/gmove.png}
 \end{figure}
 
-In XMP/C, p[0] sends b[0] - b[3] to p[2] - p[3], and p[1] sends b[4] to
-p[3]. Similarly, in XMP/Fortran, p(1) sends b(1) - b(4) to p(3) - p(4),
-and p(2) sends b(5) to p(4).
-
-In this example, it is assignment statements between distributed arrays
-with the same shape. XMP also supports to assign it with the different
-shape.
+In XMP/C, \|p[0]| sends \|b[0]|-\|b[3]| to \|p[2]|-\|p[3]|, and \|p[1]|
+sends \|b[4]| to \|p[3]|. Similarly, in XMP/Fortran, \|p(1)| sends
+\|b(1)|-\|b(4)| to \|p(3)|-\|p(4)|, and \|p(2)| sends \|b(5)| to \|p(4)|.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -393,26 +394,27 @@ integer :: a(16), b(16)
 
 \begin{figure}
   \centering
-  \includegraphics{figs/gmove_cyclic.png}
+  \includegraphics[width=\textwidth]{figs/gmove_cyclic.png}
 \end{figure}
 
-While array a is distributed in a cyclic manner, array b is distributed
-in a block manner.
+While array \|a| is distributed in a cyclic manner, array \|b| is
+distributed in a block manner.
 
-In XMP/C, p[0] sends b[0] and b[4] to p[2] and p[3]. p[1] sends b[1] to
-p[2]. Each element of p[2] and p[3] will be copied locally. Similarly,
-in XMP/Fortran, p(1) sends b(1) and b(5) to p(3) and p(4). p(2) sends
-b(2) to p(3). Each element of p(3) and p(4) will be copied locally.
+In XMP/C, \|p[0]| sends \|b[0]| and \|b[4]| to \|p[2]| and
+\|p[3]|. \|p[1]| sends \|b[1]| to \|p[2]|. Each element of \|p[2]| and
+\|p[3]| will be copied locally. Similarly, in XMP/Fortran, \|p(1)| sends
+\|b(1)| and \|b(5)| to \|p(3)| and \|p(4)|. \|p(2)| sends \|b(2)| to
+\|p(3)|. Each element of \|p(3)| and \|p(4)| will be copied locally.
 
-\begin{mynote}
-If the number of elements specified on the
-right-hand side is other than one, it will not work properly if the
-  number of elements differs between the right-hand side and the
-  left-hand side.
-\end{mynote}
+% \begin{mynote}
+%   If the number of elements specified on the
+% right-hand side is other than one, it will not work properly if the
+%   number of elements differs between the right-hand side and the
+%   left-hand side.
+% \end{mynote}
 
-By using this method, the shape of a distributed array can be changed
-during calculation.
+By using this method, the shape of a distributed array can be ``changed''
+during computation.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -446,20 +448,23 @@ integer :: a(16), b(16)
 
 \begin{figure}
   \centering
-  \includegraphics{figs/gmove_change.png}
+  \includegraphics[width=\textwidth]{figs/gmove_change.png}
 \end{figure}
 
-In this example, copying all elements of array b which is distributed in
-a block manner to array a which is distributed in a gblock manner. In
-arrays a and b, communication occurs only for elements whose responsible
-nodes do not match (the arrow means communication between nodes in
-figures).
+In this example, copying all elements of array \|b| that is distributed in
+a block manner to array \|a| that is distributed in a generalized-block
+manner.
+%
+For arrays \|a| and \|b|, communication occurs if corresponding elements
+reside in different nodes (arrows illustrate communication between nodes in
+the figures).
 
-\paragraph{Scalar}
+%\paragraph{Scalar}
 
-In an assignment statement, if one element is specified on the
-right-hand side and plural elements are specified on the left-hand side,
-the operation will be broadcast communication.
+In an assignment statement, if a scalar (i.e. one element of an array or
+a variable) is specified on the right-hand side and an array section are
+specified on the left-hand side, the operation will be broadcast
+communication.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -487,18 +492,18 @@ integer :: a(16), b(16)
 
 \begin{figure}
   \centering
-  \includegraphics{figs/gmove_one_element.png}
+  \includegraphics[width=\textwidth]{figs/gmove_one_element.png}
 \end{figure}
 
-In this example, in XMP/C, an element array b[0] of node p[0] will be
-broadcasted to the specified index of node p[2] and p[3]. Similarly, in
-XMP/Fortran, an element array b(1) of node p(1) will be broadcasted to
-the specified index of node p(3) and p(4).
+In this example, in XMP/C, an array element \|b[0]| of node \|p[0]| will be
+broadcasted to the specified array section on node \|p[2]| and
+\|p[3]|. Similarly, in XMP/Fortran, an array element \|b(1)| of node
+\|p(1)| will be broadcasted to the specified array section on node \|p(3)| and \|p(4)|.
 
-\paragraph{Duplicated array and scalar}
+%\paragraph{Duplicated array and scalar}
 
-Not only distributed arrays but also duplicated arrays and scalar
-variables can be described on the right-hand side.
+Not only distributed arrays but also replicated arrays can be specified
+on the right-hand side.
 
 \begin{XCexample}
  #pragma xmp nodes p[4]
@@ -509,9 +514,6 @@ variables can be described on the right-hand side.
       :
 #pragma xmp gmove
    a[9:5] = b[0:5];
-
-#pragma xmp gmove
-   a[9:5] = c;
 \end{XCexample}
 
 \begin{XFexample}
@@ -523,16 +525,12 @@ variables can be described on the right-hand side.
       :
 !$xmp gmove
    a(10:14) = b(1:5)
-
-!$xmp gmove
-   a(10:14) = c
 \end{XFexample}
 
-In this example, duplicated array and scalar variable are copied to
-distributed array locally. For this reason, communication does not
-occur.
+In this example, a replicated array \|b| is locally copied to
+distributed array \|a| without communication.
 
-\paragraph{Distributed array with different dimension}
+%\paragraph{Distributed array with different dimension}
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -567,14 +565,20 @@ integer :: a(16,8), b(8,16)
   \includegraphics{figs/gmove_different.png}
 \end{figure}
 
-In this example, in XMP/C, b[0][0:2] of p[0], b[0][2:2] of p[1],
-b[0][4:2] of p[2] and b[0][6:2] of p[3] are copied to a[0][:] of
-p[0]. Similarly, in XMP/Fortran, b(1:2,1) of p(1), b(3:4,1) of p(2),
-b(5:6,1) of p(3) and b(7:8,1) of p(4) are copied to a(:,1) of p(1).
+In this example, in XMP/C, \|b[0][0:2]| on \|p[0]|, \|b[0][2:2]| of
+\|p[1]|, \|b[0][4:2]| on \|p[2]| and \|b[0][6:2]| on \|p[3]| are copied
+to \|a[0][:]| on \|p[0]|. Similarly, in XMP/Fortran, \|b(1:2,1)| on
+\|p(1)|, \|b(3:4,1)| of \|p(2)|, \|b(5:6,1)| on \|p(3)| and \|b(7:8,1)|
+on \|p(4)| are copied to \|a(:,1)| on \|p(1)|.
+
 
 \subsubsection{In Mode}
 
-It operates as in mode by setting in clause to gmove directive.
+%It operates as in mode by setting in clause to gmove directive.
+
+The right-hand side data of the assignment, all or part of which may
+reside outside the executing node set, can be transferred from its owner
+nodes to the executing nodes by an {\it in} \|gmove|.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -604,10 +608,10 @@ real :: a(4), b(4)
 !$xmp end task
 \end{XFexample}
 
-In this example, the task directive divides the node set of 4 nodes into
-two nodes, the first-half and the second-half. In gmove directive which
-is in mode, it executes get communication from array of second-half node
-to array of first-half node.
+In this example, the \|task| directive divides four nodes into
+two sets, the first-half and the second-half. A \|gmove| construct that
+is in an {\it in} mode copies data using a {\it get} operation from
+the second-half node to the first-half node.
 
 \begin{figure}
   \centering
@@ -617,7 +621,9 @@ to array of first-half node.
 
 \subsubsection{Out Mode}
 
-It operates as out mode by setting out clause to gmove directive
+The left-hand side data of the assignment, all or part of which may
+reside outside the executing node set, can be transferred from the
+executing nodes to its owner nodes by an {\it out} \|gmove| construct.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -647,10 +653,8 @@ real :: a(4), b(4)
 !$xmp end task
 \end{XFexample}
 
-In this example, it just reversed the assignment statement of the in
-mode. In gmove directive which is out mode, it executes put
-communication from array of first-half node to array of second-half
-node.
+A \|gmove| construct that is in {\it out} mode copies data using a {\it put}
+communication from the first-half nodes to the second-half nodes.
 
 \begin{figure}
   \centering
@@ -660,7 +664,7 @@ node.
 
 \subsection{{\bf barrier} Construct}
 
-Execute barrier synchronization.
+The \|barrier| construct executes a barrier synchronization.
 
 \begin{XCexample}
 #pragma xmp barrier
@@ -670,9 +674,9 @@ Execute barrier synchronization.
 !$xmp barrier
 \end{XFexample}
 
-You can set the barrier range by using the on clause. In the below
-example, barrier synchronization occurs only in the first two nodes of
-p.
+You can specify a node set on which the barrier synchroniation is to be
+performed by using the \|on| clause. In the below example, a barrier
+synchronization is performed among the first two nodes of \|p|.
 
 \begin{XCexample}
 #pragma xmp barrier on p[0:2]
@@ -685,9 +689,9 @@ p.
 
 \subsection{{\bf reduction} Construct}
 
-Execute reduction operation. It has the same meaning as the reduction
-clause of loop construct, but the reduction directive can be described
-anywhere.
+This construct performs a {\it reduction} operation. It has the same
+meaning as the \|reduction| clause of the \|loop| construct, but this
+construct can be specified anywhere as an {\it executable} construct.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -708,9 +712,9 @@ sum = xmp_node_num()
   \includegraphics{figs/reduction.png}
 \end{figure}
 
-You can set the range of the node set by using the on clause. In the
-below example, only the values of the last two nodes in four nodes are
-targets to reduction operation.
+You can specify the executing node set by using the \|on| clause. In the
+below example, only the values on the last two of the four nodes are
+targeted by the \|reduction| construct.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -731,7 +735,7 @@ sum = xmpc_node_num() + 1;
   \includegraphics{figs/reduction_on.png}
 \end{figure}
 
-The specifiable operators are as follows.
+The operators you can use in the \|reduction| construct are as follows:
 
 \begin{XCexample}
 +
@@ -762,31 +766,38 @@ ieor
 \end{XFexample}
 
 \begin{mynote}
-Since the reduction clause needs a loop statement,
-operators of
-firstmax, firstmin, lastmax, and lastmin are required. But, since the
-reduction directive does not need a loop statement, there are no such
-operators.
+% Since the \|reduction| clause needs a loop statement,
+% operators of
+% firstmax, firstmin, lastmax, and lastmin are required. But, since the
+% reduction directive does not need a loop statement, there are no such
+% operators.
+  In contrast to the \|reduction| clause of the \|loop| construct, which
+  precedes loops, the \|reduction| construct does not accept operators of
+  \|firstmax|, \|firstmin|, \|lastmax|, and \|lastmin|.
 \end{mynote}
 
 \begin{mynote}
-Similar to the reduction clause, the reduction
-directive may have
-slightly different results from sequential execution and parallel
-execution, because of depending on the calculation order when the
-reduction variable is a floating-point type.
+  Similar to the \|reduction| clause, the \|reduction| construct may
+  generate slightly different results in a parallel execution from in a
+  sequential execution, because the results depends on the order of
+  associating the value.
 \end{mynote}
 
 
 \subsection{{\bf bcast} Construct}
 
-The bcast directive broadcasts variables which are held by the node,
-specified in the from clause, to the node set specified in the on
-clause. If there is no from clause, the first node of the target node
-set is the starting point. If there is no on clause, the current set of
-nodes will be covered.
+The \|bcast| construct broadcasts the values of the variables on the
+node specified by the \|from| clause, that is, the {\it root node}, to
+the node set specified by the \|on| clause.
+%
+If there is no \|from| clause, the first node of the executing node
+set is selected as the root node.
+%
+If there is no \|on| clause, the current executing node set of the
+construct is selected as the executing node set.
 
-In the below example, the first node of the node set p is the starting point.
+In the below example, the first node of the node set \|p| is the root
+node.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -807,8 +818,7 @@ num = xmp_node_num()
   \includegraphics{figs/bcast.png}
 \end{figure}
 
-In the below example, starting from the last node of the node set p by
-the from clause.
+In the below example, the last node is the \|from| clause.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -829,8 +839,8 @@ num = xmp_node_num()
   \includegraphics{figs/bcast_from.png}
 \end{figure}
 
-In the below example, only the values of the last three nodes in 4 nodes
-are targets for communication by the on clause.
+In the below example, only the last three of four nodes
+are the executing node set of the \|bcast| construct.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -854,10 +864,10 @@ sum = xmpc_node_num() + 1;
 
 \subsection{{\bf wait\_async} Construct}
 
-Communication directives (reflect, gmove, reduction, bcast,
-reduce\_shadow) can execute asynchronous communication by attaching the
-“async” clause. The wait\_async directive is used to guarantee the
-completion of their asynchronous communication.
+Communication directives (i.e. \|reflect|, \|gmove|, \|reduction|,
+\|bcast|, \|reduce_shadow|) can perform asynchronous communication if
+the \|async| clause is added. The \|wait_async| construct is used to
+guarantee the completion of asynchronous communication.
 
 \begin{XCexample}
 #pragma xmp bcast (num) async(1)
@@ -871,30 +881,32 @@ completion of their asynchronous communication.
 !$xmp wait_async (1)
 \end{XFexample}
 
-Since the bcast directive has an async clause, communication may not be
-completed immediately after the bcast directive. Completion of that
-communication is guaranteed with the wait\_async directive whose the same
-value as the async clause is specified. Therefore, between the bcast
-directive and the wait\_async directive, you can not operate on the
-variable specified in the bcast directive.
+Since the \|bcast| directive has an \|async| clause, communication may
+not be completed immediately after the \|bcast| directive. The
+completion of that communication is guaranteed with the \|wait_async|
+construct having the same value as that of the \|async| clause.
+%
+Therefore, between the \|bcast| construct and the \|wait_async|
+constructs, you may not reference the target variable of the \|bcast|
+directive.
 
 \begin{myhint}
-By performing calculations without a dependency
+By performing computation without a dependency
 relationship with the variable specified by the bcast directive after
-the bcast directive, overlap of communication and calculation can be
-performed, so the total calculation time may be small.
+the bcast directive, overlap of communication and computation can be
+performed, so the total computation time may be small.
 \end{myhint}
 
 \begin{mynote}
-Values that can be specified for async clause are
-int type in XMP/C, and
-integer type in XMP/Fortran.
+Expressions that can be specified in the \|async| clause are
+of type int, in XMP/C, or integer, in XMP/Fortran.
 \end{mynote}
+
 
 \subsection{{\bf reduce\_shadow} Construct}
 
-The reduce\_shadow directive adds the value of the shadow to the value of
-the source element.
+The \|reduce_shadow| directive adds the value of a shadow object to the
+corresponding data object of the array.
 
 \begin{XCexample}
 #pragma xmp nodes p[2]
@@ -929,22 +941,23 @@ int a[8];
 !$xmp reduce_shadow (a)
 \end{XFexample}
 
-The shadow directive adds one shadow to the distributed array a of each
-node. Next, the reflect directive will update shadow between
-neighborhood nodes. Finally, the reduce\_shadow directive adds the value
-of the shadow to the value of the source element.
+% The \|shadow| directive adds a shadow are of width one to the
+% distributed array \|a| of each node. Next, the \|reflect| construct
+% updates the shadow area. Finally, the \|reduce_shadow| construct adds
+% the value of the shadow to the value of the source element.
 
-In XMP/C, a[3] of p[0] has a value of 8, and a[4] of p[1] has a value of
-10. Similarly, in XMP/Fortran, a(4) of p(1) has a value of 8, and a(5)
-of p(2) has a value of 10.
+For the above example, in XMP/C, \|a[3]| on \|p[0]| has a value of eight,
+and \|a[4]| on \|p[1]| has a value of ten. Similarly, in XMP/Fortran,
+\|a(4)| of \|p(1)| has a value of eight, and \|a(5)| on \|p(2)| has a
+value of ten.
 
 \begin{figure}
   \centering
-  \includegraphics{figs/reduce_shadow.png}
+  \includegraphics[width=\textwidth]{figs/reduce_shadow.png}
 \end{figure}
 
-You can add the periodic modifier to the width clause to execute
-periodic region updates.
+You can add the \|periodic| modifier to the \|width| clause to update
+the shadow area periodically.
 
 \begin{XCexample}
 #pragma xmp reflect (a) width(/periodic/1)
@@ -958,9 +971,10 @@ periodic region updates.
 
 \begin{figure}
   \centering
-  \includegraphics{figs/reduce_shadow_periodic.png}
+  \includegraphics[width=\textwidth]{figs/reduce_shadow_periodic.png}
 \end{figure}
 
-In addition to the first example, in XMP/C, a[0] of p[0] has a value of
-2, and a[7] of p[1] has a value of 16. Similarly, in XMP/Fortran, a(1)
-in p(1) has a value of 2, and a(8) in p(2) has a value of 16.
+In addition to the first example, in XMP/C, \|a[0]| on \|p[0]| has a
+value of two, and \|a[7]| on \|p[1]| has a value of 16. Similarly, in
+XMP/Fortran, \|a(1)| in \|p(1)| has a value of two, and \|a(8)| in
+\|p(2)| has a value of 16.

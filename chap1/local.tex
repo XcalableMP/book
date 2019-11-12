@@ -6,23 +6,23 @@ The user uses Coarray in the local-view model to describe one-sided
 communication. In XMP, put/get communication and some synchronization
 functions are supported.
 
-If the target system supports Remote Direct Memory Access（RDMA） in the
+If the target system supports Remote Direct Memory Access (RDMA) in the
 hardware, one-sided communication in the local-view model can achieve
 better performance compared to the global-view model. However, it
 requires more effort to describe parallel program since all
 communication should be specified in detail.
 
-XMP/Fortran supports Coarray in the standard Fortran 2008. Coarray in
-XMP/C has its own original syntax since the C language does not support
-Coarray.
+% XMP/Fortran supports coarray as its base language Fortran 2008. Coarray
+% in XMP/C has its own original syntax since the C language does not support
+% Coarray.
 
-\begin{mynote}
-  XMP/Fortran has upward compatibility with Fortran 2008.
-\end{mynote}
+Coarray in XMP/Fortran is upward-compatibile with that in Fortran 2008;
+coarray in XMP/C is defined as an extension to the base language.
 
-The basic unit of execution in the local-view is called “image” while it
-is called “node” in the global-view model. The two words have the same
-meaning in XMP.
+An execution entity in a local-view XMP program is referred to as an 
+``image'' while a ``node'' in a global-view.
+%
+These two words have almost the same meaning in XMP.
 
 \subsection{Coarray Declaration}
 
@@ -34,26 +34,25 @@ int a[10]:[*];
 integer a(10)[*]
 \end{XFexample}
 
-In XMP/C, the user declares a Coarray by adding :[] (Coarray dimension)
-after the array declaration. In XMP/Fortran, the user declares a Coarray
-by adding [] after the array declaration. The asterisk symbol is used in
-both languages.
+In XMP/C, the user declares a coarray by adding ``\|:[*]|''
+after the array declaration. In XMP/Fortran, the user declares a coarray
+by adding ``\|[*]|'' after the array declaration.
+%The asterisk symbol is used in both languages.
 
 \begin{mynote}
-Based on Fortran 2008, the Coarray should have the same size of the
-entire execution node group.
+  Based on Fortran 2008, coarrays should have the same size among all
+  images.
 \end{mynote}
 
-Coarray can be accessed from other images using assignment
-statements. Of course, coarray can be also accessed from your image like
-ordinary array.
+A coarray can be accessed by remote images with assignment
+statements. Of course, it can be also accessed by the local image like
+ordinary arrays.
 
-\subsection{One-sided Communication}
 
-\subsubsection{Put Communication}
+\subsection{Put Communication}
 
-When the Coarray reference appears in the left-hand side in an
-assignment statement, it causes put communication.
+When a coarray appears in the left-hand side of an
+assignment statement, it involves {\it put} communication.
 
 \begin{XCexample}
 int a[10]:[*], b[10];
@@ -71,44 +70,45 @@ if (this_image() == 1) then
 end if
 \end{XFexample}
 
-The integer number in the Coarray dimension specifies the targer
-image. Each image index starts with 0 in XMP/C and starts with 1 in
-XMP/Fortran. \|xmpc_this_image()| in XMP/C and \|this_image()| XMP/Fortran
-return the current image index.
+The integer in the square bracket specifies the target image index. The
+image index is 0-based, in XMP/C, or 1-based, in
+XMP/Fortran. \|xmpc_this_image()| in XMP/C and \|this_image()| in
+XMP/Fortran return the current image index.
 
-\begin{mynote}
-In XMP/Fortran, image index starts with 1 while it
-uses [] (similar to C 
-style for array dimension) to specify Coarray dimension based on the
-standard Fortran 2008.
-\end{mynote}
+% \begin{mynote}
+% In XMP/Fortran, image index starts with 1 while it
+% uses [] (similar to C 
+% style for array dimension) to specify coarray dimension based on the
+% standard Fortran 2008.
+% \end{mynote}
 
-\begin{mynote}
-When Coarray dimension appears on both side, 3
-nodes (target, source, current node) involve the communication.
-\end{mynote}
+% \begin{mynote}
+% When coarray dimension appears on both side, 3
+% nodes (target, source, current node) involve the communication.
+% \end{mynote}
 
-In the above example, XMP/C puts b[3:3] on image 0 to a[0:3] on image
-1. XMP/Fortran puts b(3:5) on image 1 to a(1:3) on image 2. The
-following figure illustrates the one-sided communication done by
-Corray.
+In the above example, in XMP/C, an image 0 puts \|b[3:3]| to
+\|a[0:3]| on image 1; in XMP/Fortran, an image 1 puts \|b(3:5)| to
+\|a(1:3)| on image 2. The following figure illustrates the one-sided
+communication performed in the example.
 
 \begin{figure}
   \centering
   \includegraphics{figs/put.png}
 \end{figure}
 
-\begin{mynote}
-The directives in the global-view model invoke
-point-to-point
-communication. On the other hand, Coarrays in the local-view model
-invoke one-sided communication.
-\end{mynote}
+% \begin{mynote}
+%   The directives in the global-view model invoke
+% point-to-point
+% communication. On the other hand, coarrays in the local-view model
+% invoke one-sided communication.
+% \end{mynote}
 
-\subsubsection{Get Communication}
 
-When a Coarray appears in the right-hand side in the assignment
-statement, it causes get communication.
+\subsection{Get Communication}
+
+When a coarray appears in the right-hand side of an assignment
+statement, it involves {\it get} communication.
 
 \begin{XCexample}
 int a[10]:[*], b[10];
@@ -126,26 +126,27 @@ if (this_image() == 1) then
 end if
 \end{XFexample}
 
-In the above program, XMP/C gets a[0:3] from image 1 and stores them on
-b[3:3] of image 0. XMP/Fortran gets a(1:3) from image 2 and stores them
-on b(3:5) of image 1. The following figure illustrates Coarray get
-communication.
+In the above example, in XMP/C, an image 0 gets \|a[0:3]| from an image
+1 and copies it to \|b[3:3]|; in XMP/Fortran, an image 1 gets \|a(1:3)|
+from an image 2 and copies it to \|b(3:5)| of an image 1. The following
+figure illustrates the one-sided communication performed in the example.
 
 \begin{figure}
   \centering
   \includegraphics{figs/get.png}
 \end{figure}
 
-Hint
+\begin{myhint}
+  As illustrated above, get communication involves an extra step to send a
+  request to the target node. Put communication achieves better
+  performance than get because there is no such extra step.
+\end{myhint}
 
-As illustrated get needs an extra step to send a request to the target
-node. Put communication achieves better performance than get since there
-is no such extra step.
 
-\subsubsection{Synchronization}
+\subsection{Synchronization}
 
-Here, we introduce ``sync all'' which is most frequently used among
-Coarray synchronization functions.
+Here, we introduce ``sync all,'' which is most frequently used among
+synchronization features for coarrays.
 
 \begin{XCexample}
 void xmp_sync_all(int *status)
@@ -155,8 +156,9 @@ void xmp_sync_all(int *status)
 sync all
 \end{XFexample}
 
-The ``sync all'' waits all issued one-sided communication and invokes
-barrier synchronization among the entire images.
+At ``sync all,'' each image waits until all issued one-sided
+communication is complete and then performs barrier synchronization
+among the entire images.
 
 \begin{figure}
   \centering
@@ -164,8 +166,8 @@ barrier synchronization among the entire images.
 \end{figure}
 
 In the above example, the left image puts data to the right image and
-both nodes invoke sync all. When both nodes finish sync all, the
-execution continues after the synchronization point.
+both nodes invoke \|sync all|. When both nodes returns from it, the
+execution continues to the following satements.
 
 % 3.5. Tutorial
 % Run the following sample using 2 images.
@@ -259,7 +261,7 @@ execution continues after the synchronization point.
 %     end do
 %   end if
 % end program main
-% In the above example, 3 Coarrays a, b, c are declared. a and b are 1-dimensional arrays and c is a 2-dimensional array. The following shows the initial values of each array.
+% In the above example, 3 coarrays a, b, c are declared. a and b are 1-dimensional arrays and c is a 2-dimensional array. The following shows the initial values of each array.
 
 % Image 0 in XMP/C, Image 1 in XMP/Fortran
 % a : from 0 to 9
@@ -316,7 +318,7 @@ execution continues after the synchronization point.
 % 190  191  192  193  194  195  196  197  198  199
 
 
-\subsection{Synchronization Statements}
+%\subsection{Synchronization Statements}
 
 \subsubsection{sync all}
 
@@ -328,8 +330,10 @@ void xmp_sync_all(int *status)
 sync all
 \end{XFexample}
 
-Barrier synchronization is performed among all images after completing
-all one side communications. For details, see Tutorial (Local-view).
+Each image waits until all one-sided communication issued is complete,
+and performs barrier synchronization.
+% For details, see Tutorial (Local-view).
+
 
 \subsubsection{sync images}
 
@@ -341,8 +345,9 @@ void xmp_sync_images(int num, int *image-set, int *status)
 sync images (image-set)
 \end{XFexample}
 
-Barrier synchronization is performed among the specified images after
-completing all one side communications.
+Each image in the specified images waits until all one-sided
+communication issued is complete, and performs barrier synchronization
+among the images.
 
 \begin{XCexample}
 int image_set[3] = {0,1,2};
@@ -354,6 +359,7 @@ integer :: image_set(3) = (/ 1, 2, 3/)
 sync images (image_set)
 \end{XFexample}
 
+
 \subsubsection{sync memory}
 
 \begin{XCexample}
@@ -364,9 +370,9 @@ void xmp_sync_memory(int *status)
 sync memory
 \end{XFexample}
 
-Wait for completion of all one side communications. This function does
-not include barrier synchronization unlike sync all and sync images, so
-it is executed only locally.
+Each image waits until all one-sided communication is complete. This
+function/statement does not imply barrier synchronization, unlike
+\|sync all| and \|sync images|, and therefore can be locally executed. 
 
 % 20.2. Arguments
 
