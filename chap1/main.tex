@@ -28,7 +28,7 @@
 % \usepackage{amsmath}
 % \usepackage{ascmac}
 \usepackage[dvipdfmx]{graphicx}  % for EPS and PDF 
-% \usepackage{url}
+\usepackage{url}
 \usepackage{fancyvrb}
 % \usepackage{makeidx}
 % \usepackage{float}
@@ -100,6 +100,12 @@ stringstyle={\small\ttfamily},
 
 \def\Intrinsic#1{\index{#1@{\tt #1}}\index{Intrinsic and Library Procedures!#1@{\tt #1}}}
 
+
+\DefineVerbatimEnvironment{XFsyntax}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
+frame=lines,label=XcalableMP Fortran Syntax}
+\DefineVerbatimEnvironment{XCsyntax}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
+frame=lines,label=XcalableMP C Syntax}
+
 \DefineVerbatimEnvironment{Fexample}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
 frame=single,label=\Fort}
 \DefineVerbatimEnvironment{FexampleR}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
@@ -165,8 +171,8 @@ Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan,
 Fortran and C for distributed-memory parallel computers, and can be
 classified as a partitioned global address space (PGAS) language. One of
 remarkable characteristics of XMP is that it supports both of
-global- and local-view parallel programming. This chapter describes the
-programming model and language specification of XMP.}
+global-view and local-view parallel programming. This chapter describes
+the programming model and language specification of XMP.}
 
 %\tableofcontents
 

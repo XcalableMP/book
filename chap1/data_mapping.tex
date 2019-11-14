@@ -2,8 +2,9 @@
 
 \subsection{{\tt nodes} Directive}
 
-The {\tt nodes} directive declares the name of a node array and its shape. A
-node array can be multi-dimensional.
+The {\tt nodes} directive declares a {\it node array}, which is an
+array-like arrangement of nodes in a node set. A node array can be
+multi-dimensional.
 
 %\subsubsection{One-dimensional Node Set}
 
@@ -15,11 +16,12 @@ node array can be multi-dimensional.
 !$xmp nodes p(4)
 \end{XFexample}
 
-The nodes directive declares 1-dimensional node set p which has four
-nodes. In XMP/C, the node set consists of p[0], p[1], p[2], and p[3]. In
-XMP/Fortran, the node set consists of p(1), p(2), p(3), and p(4).
+The nodes directive declares a one-dimensional node array \|p| that
+includes four nodes. In XMP/C, it is zero-based and consists
+of \|p[0]|, \|p[1]|, \|p[2]|, and \|p[3]|. In XMP/Fortran, it is
+one-based and consists of \|p(1)|, \|p(2)|, \|p(3)|, and \|p(4)|.
 
-\subsubsection{Multi-dimensional Node Set}
+%\subsubsection{Multi-dimensional Node Set}
 
 \begin{XCexample}
 #pragma xmp nodes p[2][3]
@@ -30,14 +32,14 @@ XMP/Fortran, the node set consists of p(1), p(2), p(3), and p(4).
 \end{XFexample}
 
 The \|nodes| directive declares two-dimensional node array \|p| that
-includes six nodes. In XMP/C, the node set includes \|p[0][0]|,
+includes six nodes. In XMP/C, it consists of \|p[0][0]|,
 \|p[0][1]|, \|p[0][2]|, \|p[1][0]|, \|p[1][1]|, and \|p[1][2]|. In
-XMP/Fortran, the node set includes \|p(1,1)|, \|p(2,1)|, \|p(3,1)|,
+XMP/Fortran, it consists of \|p(1,1)|, \|p(2,1)|, \|p(3,1)|,
 \|p(1,2)|, \|p(2,2)|, and \|p(3,2)|.
 
 \begin{mynote}
-  The ordering of the elements in a node array depends on the base
-  language, that is, C or Fortran. 
+  The ordering of the elements in a node array follows that of a normal
+  array in the base language, C or Fortran. 
 \end{mynote}
 
 %\subsubsection{Dynamic Node Set}
@@ -50,14 +52,17 @@ XMP/Fortran, the node set includes \|p(1,1)|, \|p(2,1)|, \|p(3,1)|,
 !$xmp nodes p(*)
 \end{XFexample}
 
-An asterisk can be specified in the \|nodes| directive to declare a
-{\it dynamic} node array. In the above program, one-dimensional dynamic
-node array \|p| is declared with an asterisk. The size of a dynamic node
-array is determined at runtime (at the beginning of the execution). For example,
-when the user runs the sample program with three nodes, the node array \|p|
-include three nodes.
+An asterisk can be specified as the size in the \|nodes| directive to declare a
+{\it dynamic} node array. In the above code, one-dimensional dynamic
+node array \|p| is declared with an asterisk as the size. The actual
+size of a dynamic node array is determined at runtime to fit the size of
+the current executing node set.
+%
+For example, when
+the programmer runs the sample code with three nodes, the node array
+\|p| includes three nodes.
 
-The user also can declare multi-dimensional dynamic nodes with an
+They can also declare multi-dimensional dynamic node arrays with an
 asterisk.
 
 \begin{XCexample}
@@ -68,21 +73,22 @@ asterisk.
 !$xmp nodes p(3,*)
 \end{XFexample}
 
-When the user runs the sample program with 12 nodes, the node array \|p| will
-have a shape of 4x3, in C, or 3x4, in Fortran.
+When the programmer runs the sample code with 12 nodes, the node array \|p|
+has a shape of 4x3, in C, or 3x4, in Fortran.
 
 \begin{mynote}
-  The user can put an asterisk only in the last dimension of the node array.
+  The user can put an asterisk only in the last dimension, in
+  XMP/Fortran, or the first dimension, in XMP/C of the node array.
 \end{mynote}
 
 \begin{myhint}
-  The dynamic node array may interfere with compiler optimizations.  In
-  general, static one achieve better performance.
+  The dynamic node array may interfere with compiler optimizations. In
+  general, programs with static ones achieve better performance.
 \end{myhint}
 
 %\subsubsection{Partial Node Set}
 
-The user can declare a node subarray derived from the existing node
+The programmer can declare a node subarray derived from an existing node
 array. Node subarrays can be used, for example, to optimize inter-node
 communication by reducing the number of nodes participating in the
 communication.
@@ -99,11 +105,11 @@ communication.
 !$xmp nodes r(2,4)=p(9:16)
 \end{XFexample}
 
-In line 1, a node array \|p| inclusing 16 nodes is declared. In line 2, a
-node subarray \|q| derived from the first half of \|p| is declared. In line 3, a
-two-dimensional node subarray \|r| derived from the latter half of \|p| is declared.
+In line 1, a node array \|p| including 16 nodes is declared. In line 2, a
+node subarray \|q| corresponding to the first half of \|p| is declared. In line 3, a
+two-dimensional node subarray \|r| corresponding to the latter half of \|p| is declared.
 
-The user can declare a n-dimensional node subarray derived from a m-dimensional one.
+The programmer can declare a n-dimensional node subarray derived from a m-dimensional one.
 
 \begin{XCexample}
 #pragma xmp nodes p[4][2]
@@ -128,35 +134,42 @@ dimension.
 An asterisk indicate the index of the current executing node in the
 dimension.
 %
-For example, \|col[2]| is \|p[0][0:2]| on nodes \|p[0][0]| and
-\|p[0][1]|, and is \|p[1][0:2]| on nodes \|p[1][0]| and \|p[1][1]| in
-XMP/C. Similarly, \|col(2)| is \|p(1:2,1)| on nodes \|p(1,1)| and
-\|p(2,1)|, and is \|p(1:2,2)| on nodes \|p(1,2)| \|p(2,2)| in
-XMP/Fortran.
+For example, \|col[2]| corresponds to \|p[0][0:2]| on nodes \|p[0][0]| and
+\|p[0][1]|, and to \|p[1][0:2]| on nodes \|p[1][0]| and \|p[1][1]| in
+XMP/C. Similarly, \|col(2)| corresponds to \|p(1:2,1)| on nodes
+\|p(1,1)| and \|p(2,1)|, and to \|p(1:2,2)| on nodes \|p(1,2)| \|p(2,2)|
+in XMP/Fortran.
 
 \begin{figure}
   \centering
   \includegraphics{figs/row_col.png}
-  \caption{Partial node set.}
+  \caption{Node subarrays.}
   \label{fig:partial}
 \end{figure}
 
-In XMP/C, both p[0][0] and p[0][1] will be row[0]. Likewise, p[0][0],
-p[1][0], p[2][0] and p[3][0] will be col[0] in each execution
-context. In XMP/Fortran, both p(1,1) and p(2,1) will be
-row(1). Likewise, p(1,1), p(1,2), p(1,3) and p(1,4) will be col(1) in
-each context.
+In XMP/C, \|row[0]| corresponds to \|p[0][0]| and \|p[0][1]| on
+\|p[:][0]| and \|p[:][1]|, respectively; 
+%
+\|col[0]| corresponds to \|p[0][0]|, \|p[1][0]|, \|p[2][0]|, and \|p[3][0]|
+on \|p[0][:]|, \|p[1][:]|, \|p[2][:]|, \|p[3][:]|, respectively.
+%
+In XMP/Fortran, \|row(1)| corresponds to \|p(1,1)| and \|p(2,1)| on
+\|p(1,:)| and \|p(2,:)|, respectively;
+%
+\|col(1)| corresponds to \|p(1,1)|, \|p(1,2)|, \|p(1,3)|, and \|p(1,4)|
+on \|p(:,1)|, \|p(:,2)|, \|p(:,3)|, \|p(:,4)|, respectively.
 
 \begin{mynote}
-The semantics of an asterisk in a
-node reference is different from that in a declaraion.
+  The semantics of an asterisk in a node reference is different from
+  that in a declaraion.
 \end{mynote}
 
 
 \subsection{{\tt template} Directive}
 
-The \|template| directive declares the name and shape of a
-template.
+The \|template| directive declares a {\it template}, which is a virtual
+array that is used as a ``template'' of parallelization in the programs
+and to be distributed onto a node array.
 %  Templates are virtual arrays which used for data and work 
 % mapping. They can have multi-dimensional shapes.
 
@@ -170,11 +183,13 @@ template.
 !$xmp template t(10)
 \end{XFexample}
 
-The \|template| directive declares a one-dimensional template \|t|
-having ten elements. Templates are indexed in the similar manner to
+This \|template| directive declares a one-dimensional template \|t|
+having ten elements.
+%
+Templates are indexed in the similar manner to
 arrays in the base languages. For the above examples, the template \|t|
-is indexed from zero to nine (i.e. \|t[0]| $\cdots$ \|t[9]|) in XMP/C
-while from one to ten (i.e. \|t(1)| $\cdots$ \|t(10)|)in XMP/Fortran.
+is indexed from zero to nine (i.e. \|t[0]| $\cdots$ \|t[9]|), in XMP/C,
+or one to ten (i.e. \|t(1)| $\cdots$ \|t(10)|), in XMP/Fortran.
 
 \begin{myhint}
 % In general, the user declare templates which has the same
@@ -209,8 +224,8 @@ while from one to ten (i.e. \|t(1)| $\cdots$ \|t(10)|)in XMP/Fortran.
 \end{XFexample}
 
 The \|template| directive declares a two-dimensional template \|t| that
-has 10x20 elements. In XMP/C, \|t| is indexed from t[0][0] to t[9][19]
-while, in XMP/Fortran, from \|t(1,1)| to \|t(20,10)|.
+has 10x20 elements. In XMP/C, \|t| is indexed from t[0][0] to t[9][19],
+and,  in XMP/Fortran, from \|t(1,1)| to \|t(20,10)|.
 
 %\subsubsection{Dynamic Template}
 
@@ -231,8 +246,10 @@ fixed at runtime by the \|template_fix| construct (Sec. \ref{184243_1Nov19}).
 \subsection{{\tt distribute} Directive}
 
 The \|distribute| directive specifies a distribution of the target
-template. The user can specify a distribution format of block, cyclic,
-block-cyclic, or gblock (i.e. uneven block).
+template.
+%
+Either of {\it block}, {\it cyclic}, {\it block-cyclic}, or {\it gblock}
+(i.e. uneven block) can be specified to distribute a dimension of a template.
 
 
 \subsubsection{Block Distribution}
@@ -245,18 +262,19 @@ block-cyclic, or gblock (i.e. uneven block).
 !$xmp distribute t(block) onto p
 \end{XFexample}
 
-The target template is divided into contiguous blocks and
-distributed among nodes.
+The target template \|t| is divided into contiguous blocks and
+distributed among nodes in the node array \|p|.
 %
 % When the size of the template is $N$ and the
 % number of nodes is $K$, the size of each block will be $ceil(N/K)$.
 Let's suppose that the size of the template is $N$ and the
 number of nodes is $K$. If $N$ is divisible by $K$, a block of size $N/K$
-are assigned to each node; otherwise a block of size
+are assigned to each node; otherwise, a block of size
 $ceil(N/K)$ is assigned to each of $N/ceil(N/K)$ nodes, a block of size
 $mod(N,K)$ to one node, and no block to $(K-N/ceil(N/K)-1)$ nodes. 
 %
-The block distribution is useful for stencil computation.
+The block distribution is useful for regular computations such as a
+stencil one.
 
 \begin{mynote}
   The function $ceil(x)$ returns a minimum integer value greater than
@@ -278,10 +296,11 @@ The block distribution is useful for stencil computation.
 \begin{figure}
   \centering
   \includegraphics{figs/block.png}
+  \caption{Block distribution.}
 \end{figure}
 
 Since $ceil(22/3)$ is 8, eight elements are allocated on each of \|p[0]|
-and p[1]. And then, remaining six elements are allocated on \|p[2]|.
+and p[1], and the remaining six elements are allocated on \|p[2]|.
 
 % The user can explicitly specify the block size.
 % In that case, the remaining elements are allocated on the last node.
@@ -318,8 +337,8 @@ and p[1]. And then, remaining six elements are allocated on \|p[2]|.
 !$xmp distribute t(cyclic) onto p
 \end{XFexample}
 
-The target template is divided into chunks of size one and
-distributed among nodes in a round-robin manner.
+The target template \|t| is divided into chunks of size one and
+distributed among nodes in the node array \|p| in a round-robin manner.
 %
 The cyclic distribution is usefull for the case where the load on each
 element of the template is not balanced.
@@ -341,6 +360,7 @@ element of the template is not balanced.
 \begin{figure}
   \centering
   \includegraphics{figs/cyclic.png}
+  \caption{Cyclic distribution.}
 \end{figure}
 
 
@@ -354,8 +374,8 @@ element of the template is not balanced.
 !$xmp distribute t(cyclic(w)) onto p
 \end{XFexample}
 
-The target template is divided into chunks of size \|w| and distributed
-among nodes in a round-robin manner.
+The target template \|t| is divided into chunks of size \|w| and distributed
+among nodes in the node array \|p| in a round-robin manner.
 %
 The block-cyclic distribution is usefull for the case where the load on
 each element of the template is not balanced but the locality of the
@@ -380,6 +400,7 @@ elements is required.
 \begin{figure}
   \centering
   \includegraphics{figs/block-cyclic.png}
+  \caption{Block-cyclic distribution.}
 \end{figure}
 
 
@@ -393,13 +414,14 @@ elements is required.
 !$xmp distribute t(gblock(W)) onto p
 \end{XFexample}
 
-The target template is divided into contiguous blocks of size \|W[0]|,
+The target template \|t| is divided into contiguous blocks of size \|W[0]|,
 \|W[1]|, $\cdots$, in XMP/C, or \|W(1)|, \|W(2)|, $\cdots$, in
-XMP/Fortran, and distributed among nodes .
+XMP/Fortran, and distributed among nodes in the node array \|p|.
 %
-An array \|W| is called a mapping array.
+The array \|W| is called a mapping array.
 %
-The user can specify irregular (uneven) block distribution with gblock.
+The programmer can specify irregular (uneven) block distribution with
+the gblock format.
 %a special type of data distribution explicitly by using
 %mapping arrays (e.g. distribution of triangular matrix).
 
@@ -420,9 +442,10 @@ integer, parameter :: W(3) = (/6,11,5/)
 \begin{figure}
   \centering
   \includegraphics{figs/gblock.png}
+  \caption{Gblock distribution.}
 \end{figure}
 
-The user can specify an asterisk instead of a mapping array the in
+The programmer can specify an asterisk instead of a mapping array in the 
 gblock distribution to defer fixing the actual distribution.
 %
 In such a case, the actual distribution will be fixed at runtime by 
@@ -431,7 +454,7 @@ using {\tt template\_fix} construct.
 
 \subsubsection{Distribution of Multi-dimensional Templates}
 
-The user can distribute a multi-dimensional template onto
+The programmer can distribute a multi-dimensional template onto
 a node array.
 
 \begin{XCexample}
@@ -447,17 +470,18 @@ a node array.
 \end{XFexample}
 
 The \|distribute| directive declares the distribution of a two-dimensional
-template \|t| ong a two-dimensional node array \|p|. Each dimension of the
-template is divided in block and each rectangular regtion is assigned to a
-node.
+template \|t| onto a two-dimensional node array \|p|. Each dimension of the
+template is divided in a block manner and each of the rectangular
+regtion is assigned to a node.
 
 \begin{figure}
   \centering
   \includegraphics{figs/multi.png}
+  \caption{Example of multi-dimensional distribution (1).}
 \end{figure}
 
-The user can specify a different distribution format in each of the
-dimension of a template.
+The programmer can specify a different distribution format in each of
+the dimension of a template.
 
 \begin{XCexample}
 #pragma xmp nodes p[2][2]
@@ -474,12 +498,13 @@ dimension of a template.
 \begin{figure}
   \centering
   \includegraphics{figs/multi2.png}
+  \caption{Example of multi-dimensional distribution (2).}
 \end{figure}
 
-When an asterisk is specified in the \|distribute| directive as
-a distribution format, the target dimension is``non-distributed.'' In
-the following example, the first dimension will be distributed in a
-block manner and the second dimension will is non-distributed.
+When an asterisk is specified in a \|distribute| directive as
+a distribution format, the target dimension is ``non-distributed.'' In
+the following example, the first dimension is distributed in a
+block manner and the second dimension is non-distributed.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -496,8 +521,8 @@ block manner and the second dimension will is non-distributed.
 \begin{figure}
   \centering
   \includegraphics{figs/multi3.png}
+  \caption{Example of multi-dimensional distribution (3).}
 \end{figure}
-
 
 
 \subsection{{\tt align} Directive}
@@ -506,8 +531,11 @@ block manner and the second dimension will is non-distributed.
 % among nodes by using a distributed template. The {\tt align} directive
 % must follow the definition of the target template.
 
-The align directive specifies that an array is to be mapped in the same
-way as a specified template.
+The \|align| directive specifies that an array is to be mapped in the
+same way as a specified template. In other words, an \|align| directive
+defines the correspondece of elements between an array and a template,
+and each of the array element is allocated on the node where the
+corresponding template element is allocated.
 % As a result of this directive, an array is ``distributed'' onto nodes.
 
 %\subsubsection{Normal Alignment}
@@ -528,7 +556,7 @@ integer :: a(8)
 !$xmp align a(i) with t(i)
 \end{XFexample}
 
-The array \|a| is decomposed and laid out so that each array element
+The array \|a| is decomposed and laid out so that each element
 \|a(i)| is colocated with the corresponding template element \|t(i)|.
 
 % The {\tt align} directive aligns the owner node of a[i] with t(i), a
@@ -538,6 +566,7 @@ The array \|a| is decomposed and laid out so that each array element
 \begin{figure}
   \centering
   \includegraphics{figs/1dim.png}
+  \caption{Example of array alignment (1).}
 \end{figure}
 
 The \|align| directive can also be used for multi-dimensional arrays.
@@ -561,13 +590,15 @@ integer :: a(8,8)
 \begin{figure}
   \centering
   \includegraphics{figs/multi-dim.png}
+  \caption{Example of array alignment (2).}
 \end{figure}
 
 %\subsubsection{Special Alignment}
 
 %\paragraph{Collapse}
 
-The user can align a two-dimensional array with a one-dimensional template.
+The programmer can align an $n$-dimensional array with an $m$-dimensional
+template for $n > m$.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -586,14 +617,15 @@ integer :: a(8,8)
 \end{XFexample}
 
 When an asterisk is specified as a subscript in a dimension of the
-target array in the \|align| directive, the dimension is not
-distributed. In the sample program above, the first dimension of the
+target array in the \|align| directive, the dimension is ``collapsed''
+(i.e. not distributed). In the sample program above, the first dimension of the
 array {\tt a} is distributed onto the node array \|p| while the second
-dimension is ``collapsed.''
+dimension is collapsed.
 
 \begin{figure}
   \centering
   \includegraphics{figs/collapse.png}
+  \caption{Example of array alignment (3).}
 \end{figure}
 
 In XMP/C, {\tt a[0:2][:]} will be allocated on {\tt p[0]} while, in
@@ -601,8 +633,8 @@ XMP/Fortran, \|a(:,1:2)| will be allocated on \|p(1)|.
 
 %\paragraph{Replicate}
 
-The user also can align a one-dimensional array with a two-dimensional
-template.
+The programmer also can align an $n$-dimensional array with an
+$m$-dimensional template for $n < m$.
 
 \begin{XCexample}
 #pragma xmp nodes p[2][2]
@@ -627,13 +659,12 @@ target template in the \|align| directive, the array will be
 \begin{figure}
   \centering
   \includegraphics{figs/replicate.png}
+  \caption{Example of array alignment (4).}
 \end{figure}
 
 In XMP/C, \|a[0:4]| will be replicated and allocated on p[0][0] and
 p[0][1] while, in XMP/Fortran, \|a(1:4)| will be allocated on \|p(1,1)|
 and \|p(2,1)|.
-
-
 
 
 \subsection{Dynamic Allocation of Distributed Array}
@@ -661,7 +692,7 @@ second, align it as if it were an array;
 finally, allocate memory for it with the {\tt xmp\_malloc()}
 function. {\tt xmp\_desc\_of()} is an 
 intrinsic/builtin function that returns the descriptor of the XMP object
-specified by the argument.
+(i.e. nodes, templates, or global arrays) specified by the argument.
 
 \begin{XFexample}
 !$xmp nodes p(4)
@@ -673,13 +704,13 @@ real, allocatable :: a(:)
 allocate(a(N))
 \end{XFexample}
 
-In XMP/Fortran, first, declare an allocatable array; Second, align it;
+In XMP/Fortran, first, declare an allocatable array; second, align it;
 finally, allocate memory for it with the \|allocate| statement.
 
 %\subsubsection{Multi-dimensional Array}
 
 For multi-dimensional arrays, the procedure is the same as that for 
-one-dimensional arrays.
+one-dimensional ones, as follows:
 
 \begin{XCexample}
 #pragma xmp nodes p[2][2]
@@ -702,8 +733,8 @@ allocate(a(N2,N1))
 \end{XFexample}
 
 \begin{mynote}
-  If the size of the template is not fixed until runtime, you have to
-  use the \|template_fix| construct.
+  If the size of the template is not fixed until runtime, the programmer
+  have to fixe it at runtime with the \|template_fix| construct.
 \end{mynote}
 
 
@@ -711,7 +742,7 @@ allocate(a(N2,N1))
 \label{184243_1Nov19}
 
 The \|template_fix| construct fixes the shape and/or the distribution of
-an undefined template. 
+an unfixed template. 
 %It is also used when a distributed array is allocated at runtime.
 
 \begin{XCexample}
@@ -741,10 +772,10 @@ allocate(a(n))
 
 In the above sample code, 
 %
-first, a template \|t| whose size is undefined (``\|:|'') is declared;
+first, a template \|t| whose size is unfixed (``\|:|'') is declared;
 %
-second, a pointer \|a| in XMP/C or an allocatable array \|a| in
-XMP/Fortran is aligned with the template;
+second, a pointer \|a|, in XMP/C, or an allocatable array \|a|, in
+XMP/Fortran, is aligned with the template;
 %
 third, the size of the template is fixed with a \|template_fix|
 construct;
@@ -754,7 +785,7 @@ finally, the pointer or the allocatable array is allocated with the
 in XMP/Fortran, respectively.
 
 \begin{mynote}
-{\tt template\_fix} constructs can be applied to a template only once.
+The {\tt template\_fix} constructs can be applied to a template only once.
 \end{mynote}
 
 This construct can also be used to fix a mapping array of a template
