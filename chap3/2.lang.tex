@@ -1,4 +1,4 @@
-\section{Requirements from Coarray Features}\label{sec:lang}
+\section{Requirements from Coarray Features}\label{sec:spec}
 
 XMP Fortran language specification supports a major part of coarray features defined in 
 Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
@@ -11,7 +11,7 @@ to the compiler in order to implement the coarray features.
 
 
 %-----------------------------------------------------------------------------
-\subsection{Images Mapped to XMP Nodes}
+\subsection{Images Mapped to XMP Nodes}\label{sec:spec-image}
 %-----------------------------------------------------------------------------
 
 In the Fortran standard, an {\bf image} is defined as a instance of a program. 
@@ -63,7 +63,7 @@ at the entry point of the task, and reinstate them at the exit point of the task
 
 
 %-----------------------------------------------------------------------------
-\subsection{Allocation of Coarrays}
+\subsection{Allocation of Coarrays}\label{sec:spec-coarray}
 %-----------------------------------------------------------------------------
 
 A {\bf coarray} or a coarray variable is a variable that can be referred from the other images. 
@@ -164,7 +164,7 @@ is encountered.
 
 
 %-----------------------------------------------------------------------------
-\subsection{Communications}
+\subsection{Communications}\label{sec:spec-comm}
 %-----------------------------------------------------------------------------
 
 Coarray features include three types of communications between images, i.e.,
@@ -179,7 +179,7 @@ Omni compiler implements the latter two communications using the corresponding
 functions in MPI. The rest of this section describes the former communication.
 
 %===========================================================
-\subsubsection{PUT communication}\label{sec:PUT}
+\subsubsection{PUT communication}\label{sec:spec-put}
 %===========================================================
 
 PUT communication is caused by an assignment statement with a {\bf coindexed variable} 
@@ -208,7 +208,7 @@ Fortranの配列代入文を使えば、配列から配列へのPUT通信を記�
 
 
 %===========================================================
-\subsubsection{GET communication}\label{sec:GET}
+\subsubsection{GET communication}\label{sec:spec-get}
 %===========================================================
 
 GET communication is caused by referencing the {\bf coindexed object}, 
@@ -235,7 +235,7 @@ Coindexed objects can appear in most expressions.
 
 
 %-----------------------------------------------------------------------------
-\subsection{Inter-image Synchronization}
+\subsection{Inter-image Synchronization}\label{spec-sync}
 %-----------------------------------------------------------------------------
 Basically, the Fortran language specification does not guarantee the inter-image 
 data dependency unless any image control statements are explicitly used.
@@ -323,7 +323,7 @@ only the flow dependency should be care; the previous PUT communication (line~2)
 should be completed before the following GET communication (line~3).
 
 %-----------------------------------------------------------------------------
-\subsection{Subarrays and Data Contiguity}
+\subsection{Subarrays and Data Contiguity}\label{sec:spec-contig}
 %-----------------------------------------------------------------------------
 
 In Fortran, if an array, except dummy argument, is declared as {\tt real a(1:M,1:N)}, 
@@ -354,7 +354,7 @@ coindexed variableについても次元を跨いだ連続性の抽出が必要�
 
 
 %-----------------------------------------------------------------------------
-\subsection{Coarray C Language Specifications}
+\subsection{Coarray C Language Specifications}\label{sec:spec-c}
 %-----------------------------------------------------------------------------
 
 C言語にも配列式、配列代入を導入することでFortranと同様なcoarray featuresを仕様定義した。
