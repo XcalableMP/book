@@ -1,40 +1,6 @@
 \section{Evaluation}\label{sec:eval}
 
-HPCC CAF benchmark
-
-測定環境
-FX100
-HA-PACS
-
-
-%-----------------------------------------------------------------------------
-\subsection{Ping-pong}
-%-----------------------------------------------------------------------------
-
-%-- pingpong-code.pdf
-\begin{figure}[bth]
-  \begin{center}
-  % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=24mm 118mm 24mm 4mm, scale=0.7,clip]{figs/pingpong-code.pdf}}
-    \caption{pingpong-code.pdf}\label{fig:pingpong-code}
-  \end{center}
-\end{figure}
-
-Using EPCC Fortran Coarray micro-benchmark~\cite{EPCC}, we evaluated ping-pong performance 
-of PUT and GET communications compared with MPI\_Send/Recv.
-The programming code and communication pattern is illustrated in \fig{pingpong-code}.
-%
-PUT and GET execute explicit synchronization at each end of the phase to inform the change
-of the active and possive images each other.  Instead of the overhead of the synchronization, 
-MPI\_Send/Recv has overhead of unbuffering copy.
-
-\begin{figure}
-  \begin{center}
-    % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=30mm 80mm 30mm 25mm, scale=0.8, clip]{graphs/8graphs-7.pdf}}
-    \caption{Ping-pong performance on Fujitsu FX100 and HA-PACS/TCA}\label{fig:8graphs}
-  \end{center}
-\end{figure}
+\tab{specs} shows the specifications of the computers used in the evaluation.
 
 \begin{table}
  \begin{center}
@@ -73,8 +39,59 @@ MPI\_Send/Recv has overhead of unbuffering copy.
  \end{center}
 \end{table}
 
+
+
+%-----------------------------------------------------------------------------
+\subsection{Fundamental Performance}
+%-----------------------------------------------------------------------------
+
+Using EPCC Fortran Coarray micro-benchmark~\cite{EPCC}, we evaluated ping-pong performance 
+of PUT and GET communications compared with MPI\_Send/Recv.
+The codes are shortly shown in \tab{pingpong-code}.
+
+%-- pingpong-code.pdf
+\begin{table}[bht]
+  {\flushright {\tt me} is the image index. {\tt id} is the MPI rank number.}\\
+  \begin{center}
+    \caption{pingpong-code.pdf}\label{tab:pingpong-code}
+    % trimはleft bottom right topの順
+    \mbox{\includegraphics[trim=24mm 211mm 24mm 16mm, scale=0.7,clip]{figs/pingpong-code-r2.pdf}}
+  \end{center}
+\end{table}
+%
+%-- pingpong-fig.pdf
+\begin{figure}[bht]
+  \begin{center}
+  % trimはleft bottom right topの順
+    \mbox{\includegraphics[trim=30mm 195mm 32mm 16mm, scale=0.75,clip]{figs/pingpong-fig-r2.pdf}}
+    \caption{pingpong-fig.pdf}\label{fig:pingpong-fig}
+  \end{center}
+\end{figure}
+
+Corresponding to the codes in \tab{pingpong-code}, \fig{pingpong-fig} shows how data and 
+messages are echanged between two images or processes.
+In coarray PUT (a) and GET (b), inter-image synchronization is necessary for each end of 
+phases to make the passive image active and to make the active image passive.
+While, in MPI message-passing (c) and (d), such synchronization is not necessary because
+both processes are always active and know themselves when to change phases.
+%
+On the other hand, MPI message-passing has its own overhead that coarray PUT/GET
+does not have. Because the eager protocol (c) does not use RDMA, the receiver
+must copy the received data in the local buffer to the target.
+In the rendezvous protocol, negotiations including remote address notification
+are required prior to the communication.
+
+
+\begin{figure}
+  \begin{center}
+    % trimはleft bottom right topの順
+    \mbox{\includegraphics[trim=30mm 80mm 30mm 25mm, scale=0.8, clip]{graphs/8graphs-7.pdf}}
+    \caption{Ping-pong performance on Fujitsu PRIMEHPC FX100 and HA-PACS/TCA}\label{fig:8graphs}
+  \end{center}
+\end{figure}
+
 \fig{8graphs} shows the result of the comparison of coarray PUT and GET and MPI\_Send/Recv 
-on Fujitsu PRIMEHPC FX100 and HA-PACS/TCA, whose specs are described in \tab{specs}.
+
 
 CA, RA and RS method are evaluated on FJ-RDMA/FX100, on MPI-3/FX100, and on GASNet/HA-PACS,
 respectively.
@@ -84,7 +101,32 @@ The difference between GET(a) and (b) is the compile-time optimization level of 
 Omni CAF translator described in \Sec{spec-get}.
 
 
-%------ EuroMPIからコピー
+control changeのために同期が必要
+
+%--- GET(b)の効果
+GET(b)の効果
+\begin{verbatim}
+      b(j1:j2) = a(i1:i2)[k] 
+\end{verbatim}
+is converted to
+\begin{verbatim}
+      b(j1:j2) = xmpf\_coarray\_get\_generic(dp_a, k, a(i1:i2)) 
+\end{verbatim}
+by the Omni CAF translator in the case of GET(a). As a result, the statement 
+causes two extra memory copies; one is the array assignment by the operator “=” 
+and the other is the copy from the communication buffer (localBuf in Figure 3)
+ to the result variable of the array function xmpf\_coarray\_get\_generic. The latter 
+copy cannot be omitted by using DMA because the result variable is allocated by 
+the Fortran system, which makes it difficult for the translator to register earlier. 
+In the case of GET(b), the same assignment statement causes zero-copy communication 
+if the algorithm in Figure 3 selects the DMA scheme.
+
+
+
+
+
+%------ 
+EuroMPIからコピー
 
 The EPCC Fortran Coarray microbenchmark [10] consists of three kinds of benchmarks, cafpt2pt (ping-pong performance), cafsync (image control statements) and cafhalo (halo communications). Using cafpt2pt, we evaluated the bandwidth and latency of PUT and GET communications in comparison with MPI send/recv communication. Figure 6 (a) and (b) shows the result on two supercomputers and (c) shows the communication and synchronization performed as the ping-pong communication. Note that PUT and GET must execute explicit synchronization once per phase to inform the remote image that you can start the next phase now, but MPI\_Send/Recv need not. The difference between GET(a) and (b) is the compile-time optimization level of the CAF translator as shown in Table 1. PUT-GET(b) is not included in the original cafpt2pt but added to evaluate the performance of one-sided (PUT/GET) communication without synchronization overhead. The Omni XMP compiler used the RA and CA methods over FJ-RDMA and the RS method over GASNet and MPI-3. Bandwidth is the communication data size per elapsed time. Latency is the half of the elapsed time to execute a set of ping and pong phases.
 

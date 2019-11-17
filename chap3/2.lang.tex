@@ -213,25 +213,22 @@ Fortranの配列代入文を使えば、配列から配列へのPUT通信を記�
 
 GET communication is caused by referencing the {\bf coindexed object}, 
 which is represented by a coarray variable with cosubscripts enclosed by square brackets, 
-e.g., $s[1,2]$ and $a(i,j)[k]$, where $s$ and $a$ are scalar and two-dimensional array coarrays,
-respectively.
-Coindexed objects can appear in most expressions.
-
-値を配列とする配列式を使うと配列に対するGET通信を行うことができる。
-例えば coindexed-object $a(1:M,1:N)[k]$ の値は$a$と同じ型で形状$[M, N]$の2次元配列である。
-
+e.g., $s[1,2]$ and $a(i,j)[k]$, where $s$ and $a$ are scalar and two-dimensional array 
+coarrays, respectively.
+%
+A coindexed object can appear almost in any expressions including array expressions.
 
 \requirement
-ローカル側は、獲得したデータがすぐに消費されることからnon-blocking化は適さない。
-バッファリングを回避してゼロコピーとすることで効率化したい。
-通常は式の引用に対して（それが配列式であっても）ライブラリに変換するが、
-右辺に１つのcoindexed-objectしかない配列代入文は、最適化として文全体をライブラリに
-変換する。例えば、
+If a reference of coindexed object is converted to a runtime library call,
+it should be a Fortran array function. 
+For example, in in array assignment statement:
 \begin{verbatim}
-      a(1:M,1:N) = b(1:M,1:N)[k]
+      c(1:M,1:N) = a(1:M,1:N)[k] + b(1:M,1:N)
 \end{verbatim}
-では、aがDMAの要件を満たす場合には、受信先をバッファでなく直接aにすることで、
-ゼロコピーにできる。
+coindexed object $a(1:M,1:N)[k]$ should be converted to a function that
+returns an array value shaped $[M, N]$.
+It should be implemented carefully to avoid data copies multiplly in the
+communication library, the runtime, the Fortran library, and the object.
 
 
 %-----------------------------------------------------------------------------

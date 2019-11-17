@@ -318,12 +318,11 @@ get once and unbuffer once \\
 \end{table}
 
 
-
 %===========================================================
-\subsubsection{Non-blocking one-sided communication}
+\subsubsection{Non-blocking PUT communication}
 %===========================================================
 
-GET通信をできる限りnon-blockingとし、そして、その完了待ちを可能なら次のimage control statementまで遅延したい。
+PUT通信をできる限りnon-blockingとし、そして、その完了待ちを可能なら次のimage control statementまで遅延したい。
 \fig{block-ex}に示したような、同じsegment内で同じリモートデータへ書いて読むような
 ケースは大変まれで、殆どの場合には次のimage control statementまで遅延できる。
 添字式やイメージ番号が定数でないことが多いので、コンパイル時の判定では遅い方に倒れてしまう。
@@ -334,6 +333,24 @@ GET通信をできる限りnon-blockingとし、そして、その完了待ち�
 　リモートのcoarrayデータを更新した後で、同じセグメントの中で、同じデータを参照している。
 ほとんどの場合には該当しないことを利用者が分かるので、non-blockingのオプションを
 選択することを期待する。
+
+
+%===========================================================
+\subsubsection{Optimization of GET communication}
+%===========================================================
+
+Basically, a referrence to an array coindexed object is converted to a 
+call of a runtime library function that returns a Fortran array value.
+It tends to cause multiple copies.
+As a contermeasure, we optimized specfic but common cases by the translator.
+右辺に１つのcoindexed-objectしかない配列代入文は、最適化として文全体をライブラリに
+変換する。例えば、
+\begin{verbatim}
+      b(1:M,1:N) = a(1:M,1:N)[k]
+\end{verbatim}
+では、受信先をバッファとしてその後で配列代入のコピーを行うのではなく、
+受信先を直接bにすることで、
+コピー回数を減らして性能が上がることが期待できる。
 
 
 %-----------------------------------------------------------------------------
@@ -368,7 +385,7 @@ of the translated user program (written in Fortran) and URL (written in C).
 
 
 %===========================================================
-\subsection{Underlying Communication libraries}
+\subsubsection{Underlying Communication libraries}
 %===========================================================
 
 MPI-3 can be selected for all platform on which MPI-3 is implemented. Coarrays are 
@@ -397,16 +414,117 @@ One-sided communication is performed with {\tt FJMPI\_Rdma\_put} and
 
 
 %===========================================================
-\subsection{Lower-layer runtime library (LRL)}
+\subsubsection{Fortran wrapper}
 %===========================================================
 
-LRL abstracts the difference between the communication libraries except 
-which allocates the coarray data between the coarray runtime 
-(by the RS and RA methods) and the Fortran system (by the CA method).
-The features for multi-dimensional data developped for the C implementation
-are not used for the Fortran implementation.
+While the coarray runtime is written in C, coarray features are 
+based on array notations specified in Fortran~90 or later.
+The Fortran wrapper is a part of the coarray runtime and mediates
+Fortran and C argument interfaces.
 
-The LRL functions currently used in the Fortran implementation are as follows.
+For example, suppose {\\tt a} is a two-dimensional array coarray of 
+16-byte complex type. The value of a coindexed object:
+\begin{center}\tt
+a(1:10,2:19)[{\it k}]
+\end{center}
+should be a two-dimensional array shaped {\tt [} 10, 18 {\tt ]}. 
+The coarray translator converts it to a wrapper function call:
+\begin{center}\tt
+xmpf\_coarray\_get\_generic({\it desc\_}a, {\it k}, a(1:10,2:19))
+\end{center}
+where {\tt{\it desc\_}a} is the descriptor of coarray {\tt a}.
+Note that the generic function name is used in the output of the coarray
+translator. The corresponding specific name is selected in the 
+following Fortran compiler as shown below:
+\begin{center}\tt
+xmpf\_coarray\_get2d\_z16({\it desc\_}a, {\it k}, a(1:10,2:19))
+\end{center}
+where {\tt xmpf\_coarray\_get2d\_z16} means the wrapper function
+of GET communication for two-dimensional and 16-byte complex type.
+The last argument is a mold expression to get the communication pattern 
+and the shape of the result value.
+At last, this function invokes the C-written runtime function:
+\begin{center}\tt
+xmpf\_coarray\_get\_array({\it desc\_}a,\,base,\,16,\,{\it k},\,dst,\,2,\,skip,\,extent)
+\end{center}
+where, 
+%
+{\tt base} is the address of {\tt a(1,2)} that is the base address of {\tt a(1:10,2:19)},
+%
+{\tt dst} is the result variable of 16-byte complex shaped {\tt [} 10, 18 {\tt ]}
+in Fortran, or, the pointer to 16 $\times$ 10 $\times$ 80-byte memory in C, and
+%
+{\tt skip} and {\tt extent} are two-dimensional integer arrays to represent 
+the pattern of the communication data.
+
+As shown in this example,
+the Fortran wrapper converts Fortran multi-dimensional array segments 
+into a set of contiguous data sequences, which can be handled in the runtime
+library written in C.
+Conversely, it makes data returned from the runtime library an array, 
+in the case of GET communication to an array coarray.
+It also converts a C pointer to a Fortran pointer with the shape, using
+the Cray pointer.
+
+本実装では、Fortranの高級な仕様（配列記述や総称名手続き）を
+runtime libraryインタフェースとした。
+これにより、コンパイラが生成すべきオブジェクトインタフェースの数を
+数十分の一に削減してデータの型と形状をruntimeに伝えることができる
+ようになった。
+
+For collective commnications, which are caused by intrinsic subroutines 
+{\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN} and {\tt CO\_BROADCAST}, 
+the Fortran wrapper uses MPI library functions directly.
+%
+For one-sided and collective communications, it uses URL.
+
+
+%Actually, the interface is used through the Fortran~90 generic interface
+%to ease the code generation by the coarray translator.
+%For example, let us convert an {\tt ALLOCATE} statement
+%{\tt allocate (a(1:10,2:19))}, where {\tt a} is an allocatable coarray of 16-byte,
+%using object-ULR interface {\tt XMPCO\_malloc\_coarray}.
+%The translator may generate a call to the generic procedure \\
+%{\tt xmpf_coarray_malloc_generic(descriptor_of_a, a, 
+
+
+%===========================================================
+\subsubsection{Upper-layer runtime library (URL)}
+%===========================================================
+
+The major role of URL is performing the algorithm shown in \Sec{putget}
+for one-sided PUT/GET communications.
+It uses LRL for blocking or non-blocking data transfer 
+between pre-registered local and pre-registered remote data.
+
+For atomic communications caused by intrinsic subroutines
+{\tt ATOMIC\_DEFINE} and {\tt ATOMIC\_REF}, 
+URL calls the corresponding function of LRL after address calculation.
+
+
+%===========================================================
+\subsubsection{Lower-layer runtime library (LRL)}
+%===========================================================
+
+LRL basicly abstracts the difference between the communication libraries.
+The only exception is about allocation and registration of coarray data.
+The object code should exclusively select one of the following set:
+
+\begin{itemize}
+\item
+Functions to allocate and register a coarray data at the same time
+and functions to deregister and free it at the same time.
+The functions are supporsed to be used in the RS and RA methods and
+suitable for GASNet.
+
+\item
+Functions to register an already-allocated coarray data 
+and functions to deregister it.
+The functions are supporsed to be used in the CA method and
+not suitable for GASNet.
+\end{itemize}
+
+Other major LRL functions are shown bellow.
 \begin{itemize}
 \item
 A set of functions to allocate and register a specified size of coarray,
@@ -474,92 +592,9 @@ Some inquire functions.
 % \end{table}
 
 
-%===========================================================
-\subsection{Upper-layer runtime library (URL)}
-%===========================================================
-
-URL implements three kinds of coarray communications as follows:
-\begin{itemize}
-\item
-For one-sided PUT/GET communications caused by the referrence of coindexed
-variables/objects, the algorithm shown in \Sec{putget} is implemented in URL. 
-The algorithm requires only the contiguous communicaton between 
-pre-registered local and remote data.
-The Fortran wrapper mediates the argument interfaces.
-
-\item 
-For collective commnications caused by intrinsic subroutines 
-{\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN} and {\tt CO\_BROADCAST}, 
-URL lost the role in the latest implementation. 
-The Fortran wrapper uses MPI library functions directly.
-
-\item
-For atomic communications caused by intrinsic subroutines
-{\tt ATOMIC\_DEFINE} and {\tt ATOMIC\_REF}, 
-URL calls the corresponding function of LRL after address calculation.
-\end{itemize}
-
-
-
-%===========================================================
-\subsection{Fortran wrapper}
-%===========================================================
-
-While the coarray runtime is written in C, coarray features are 
-based on array notations specified in Fortran~90 or later.
-The Fortran wrapper is a part of the coarray runtime and mediates
-Fortran and C argument interfaces.
-
-For example, suppose {\\tt a} is a two-dimensional array coarray of 
-16-byte complex type. The value of a coindexed object:
-\begin{center}\tt
-a(1:10,2:19)[{\it k}]
-\end{center}
-should be a two-dimensional array shaped {\tt [} 10, 18 {\tt ]}. 
-The coarray translator converts it to a wrapper function call:
-\begin{center}\tt
-xmpf\_coarray\_get\_generic({\it desc\_}a, {\it k}, a(1:10,2:19))
-\end{center}
-where {\tt{\it desc\_}a} is the descriptor of coarray {\tt a}.
-Note that the generic function name is used in the output of the coarray
-translator. The corresponding specific name is selected in the 
-following Fortran compiler as shown below:
-\begin{center}\tt
-xmpf\_coarray\_get2d\_z16({\it desc\_}a, {\it k}, a(1:10,2:19))
-\end{center}
-where {\tt xmpf\_coarray\_get2d\_z16} means the wrapper function
-of GET communication for two-dimensional and 16-byte complex type.
-The last argument is a mold expression to get the communication pattern 
-and the shape of the result value.
-At last, this function invokes the C-written runtime function:
-\begin{center}\tt
-xmpf\_coarray\_get\_array({\it desc\_}a,\,base,\,16,\,{\it k},\,dst,\,2,\,skip,\,extent)
-\end{center}
-where, 
-\begin{itemize}
-\item
-{\tt base} is the address of {\tt a(1,2)} that is the base address of 
-{\tt a(1:10,2:19)},
-\item
-{\tt dst} is the result variable of 16-byte complex shaped {\tt [} 10, 18 {\tt ]}
-in Fortran, or, the pointer to 16 $\times$ 10 $\times$ 80-byte memory in C, and
-\item
-{\tt skip} and {\tt extent} are two-dimensional integer arrays to represent 
-the pattern of the communication data.
-\end{itemize}
-
-As shown in this example, the Fortran wrapper solves
-multi-dimensional array segments of Fortran into C, and vise visa.
-It also converts a C pointer to a Fortran pointer with the shape, using
-the Cray pointer and tricky coding.
-
-%Actually, the interface is used through the Fortran~90 generic interface
-%to ease the code generation by the coarray translator.
-%For example, let us convert an {\tt ALLOCATE} statement
-%{\tt allocate (a(1:10,2:19))}, where {\tt a} is an allocatable coarray of 16-byte,
-%using object-ULR interface {\tt XMPCO\_malloc\_coarray}.
-%The translator may generate a call to the generic procedure \\
-%{\tt xmpf_coarray_malloc_generic(descriptor_of_a, a, 
+LRL also has the features for multi-dimensional data developped for the C 
+implementation, which are not used in the Fortran implementation because
+it is solved in URL.
 
 
 
