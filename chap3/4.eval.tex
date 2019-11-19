@@ -93,10 +93,11 @@ The overhead cost is not negligible when the data is small.
 % 結果
 %===============
 
-\begin{figure}
+\begin{figure}[p]
   \begin{center}
     % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=30mm 80mm 30mm 25mm, scale=0.8, clip]{graphs/8graphs-7.pdf}}
+    %\mbox{\includegraphics[trim=30mm 80mm 30mm 25mm, scale=0.8, clip]{graphs/8graphs-7.pdf}}
+    \mbox{\includegraphics[trim=30mm 70mm 30mm 23mm, scale=0.78, clip]{graphs/8graphs-8.pdf}}
     \caption{Ping-pong performance on Fujitsu PRIMEHPC FX100 and HA-PACS/TCA}\label{fig:8graphs}
   \end{center}
 \end{figure}
@@ -191,82 +192,32 @@ In MPI message passing, non-blocking communication can be written with
 \end{figure}
 
 
-\fig{8var-pingpong} shows the result of 8-variable ping-pong, which repeats
-that sending eight separate pieces of data from one to the other in order 
-and then doing similarly in the opposite direction.
-Since each blocksize indicates the size of the piece, 
-
-In non-blocking communications PUT non-blocking and {\tt MPI\_Isend/Irecv},
-
-
-(2) Non-blocking communication. Since the CAF language specification does 
-not guarantee the arrival order of the PUT communications unless they are 
-partitioned by explicit synchronization, it is possible to continue multiple 
-non-blocking communication until the synchronization is encountered. The access 
-order on the local side is guaranteed by the Omni runtime using the buffering 
-method rather than the DMA. The expected execution of n-variable non-blocking 
-PUT is illustrated in Figure 6(c). FJ-RDMA has a function that counts the 
-number of unconsumed ACK signals, which is required on multiple non-blocking 
-communication. The code is the same as the one for blocking communication 
-shown in (c) of Table 3 and the runtime is modified so that it can be switched 
-by the environment variable. For comparative evaluation, the MPI code is modified 
-to Table 3(b).
-
-Figure 7 compares the results of n-variable blocking/non-blocking MPI two-sided 
-communications ({\tt MPI\_Send/Recv} and {\tt MPI\_Isend/Irecv}) and CAF PUT 
-communications (hereinafter referred to as MPI blocking, MPI non-blocking, 
-PUT blocking and PUT non-blocking, respectively). On the K computer, it is 
-shown that the latency of PUT non-blocking decreases as the number of variable 
-increases and it is the lowest of the four on 8-variable for 128 bytes or more. 
-
-Meanwhile, MPI non-blocking has little effect on improving latency from MPI 
-blocking and it is somewhat worse on 1- and 2-variable ping-pong. The effect 
-of non-blocking is obviously greater for CAF PUT than for MPI two-sided. On 
-PRIMEHPC FX100, a similar tendency was seen and the latency of PUT non-blocking 
-was the lowest for 8-variable ping-pong when the block size is 32 bytes or more.
-
-The advantage of multi-variable non-blocking communication is clarified by 
-the bandwidth measurement. Figure 8 compares the bandwidth of the four for 
-8-variable. The following tendencies can be found in the graph:
-
-1.The peak bandwidths of MPI blocking and PUT blocking are almost the same, 
-and the difference is at most 1\% when the block size is 2MB or more.
-
-2.The peak bandwidth of MPI non-blocking and PUT non-blocking are almost the 
-same, and the difference is at most 1\% when the block size is 256kB or more.
-
-3.MPI non-blocking has higher bandwidth than MPI blocking when the block size 
-is large. The maximum 2.0 times difference occurs when the block size is 64kB, and rendezvous communication seems to start from there.
-
-4.PUT non-blocking has higher bandwidth than MPI blocking when the block size 
-is medium. It is the maximum 2.6 times faster when the block size is 8kB and 
-more than 20\% faster when the block size is 8B to 32kB
-
-Item 1 and 2 mean that the same amount of works that are not covered with 
-the latency is hiding both in non-blocking MPI and in non-blocking PUT. Taking 
-item 4 into account, more work was left uncovered with the latency hiding 
-in non-blocking MPI compared to non-blocking PUT. We think the extra work 
-in MPI contains 1) communication to tell the target global address on the 
-receiver to the sender in the case of the rendezvous method, and 2) memory 
-copy from the buffer to the target data on the receiver in the case of the 
-eager method. In contrast, in non-blocking PUT, 1) the communication for the 
-target address is not needed because the base address has been registered 
-previously and the offset is described in the code of the sender side, and 
-2) RDMA is always used in the Omni CAF runtime. 
-
-Based on the results described in this subsection, we found a condition under 
-which coarray PUT communication outperforms MPI two-sided communication. When 
-the communication data fragments are shorter than ~1MB, they should be aggregated 
-between explicit synchronizations by the programmer and be performed in non-blocking 
-by the runtime library. A practical example is shown in the next subsection.
-
-
-
+\fig{8var-pingpong} compares blocking/non-blocking coarray PUT and 
+MPI message passing communications.
+Two original graphs are the same as the ones of \fig{8graphs} (a).
+Other four graphs display the result of 8-variable ping-pong program, 
+which repeats the ping phase sending eight individual variables 
+from one to the other in order and the pong phase doing similarly 
+in the opposite direction.
+Each blocksize indicates the size of variables and latency includes the
+time for eight variables.
+%
+The result shows that non-blocking has significantly improved the latency of 
+PUT communication. 
+Non-blocking PUT is 4.63 times faster than blocking PUT on average from 8B to 8kB. 
+Compared to the original PUT, it performs 8 times the communication in just 
+2.11 times longer on average from 8B to 8kB.
+%
+In MPI eager protocol, non-blocking has no effect for latency hiding.
+As the result, 8-variable non-blocking PUT had lower or almost the same 
+latency than blocking and non-blocking MPI message passing.
+The ratio is up to 2.17 times at 8kB comparing to 8-variable blocking MPI.
 
 \begin{figure}
   \begin{center}
     %-- 8var-pipo-latency.pdf
-    \fbox{\includegraphics[trim=15mm 50mm 5mm 50mm, scale=0.6, clip]{graphs/8var-latency.pdf}}
+    %\mbox{\includegraphics[trim=20mm 52mm 5mm 65mm,scale=0.45,clip]{graphs/8var-latency.pdf}}
+    \mbox{\includegraphics[scale=0.45]{graphs/8var-latency-2.pdf}}
     \caption{8-variable ping-pong latency on PRIMEHPC FX100}\label{fig:8var-pingpong}
    \end{center}
 \end{figure}
@@ -286,10 +237,10 @@ by the runtime library. A practical example is shown in the next subsection.
 
 
 
-
-
-
+%===========================================================
 \subsection{Himeno Benchmark}
+%===========================================================
+
 
 説明はどこかにある。\fig{himeno-graph}
 
