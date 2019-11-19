@@ -1,14 +1,14 @@
 \section{Evaluation}\label{sec:eval}
 
-\tab{specs} shows the specifications of the computers used in the evaluation.
+We evaluated the Omni coarray compiler on the systems shown in \tab{specs}.
 
 \begin{table}
  \begin{center}
   \caption{Specs of the compulters used for evaluation}\label{tab:specs}
   \begin{tabular}{l|p{0.4\textwidth}|p{0.4\textwidth}}
    \hline
-   & Fujitsu PRIMEHPC FX100
-   & HA-PACS/TCA in U.\ of Tsukuba \\
+   & HOKUSAI GreatWare (RIKEN RCCS)   & CCS, University of Tsukuba \\
+   & Fujitsu PRIMEHPC FX100           & HA-PACS/TCA \\
    \hline
    \hline
    CPU
@@ -32,7 +32,7 @@
    & Intel MPI 5.1.3 \\
    \hline
    comm.\ layer
-   & Tofu library (uTofu)
+   & Tofu library
    & GASNet 1.24.2 built as IBV-conduit with Intel compilers \\
    \hline
   \end{tabular}
@@ -45,24 +45,29 @@
 \subsection{Fundamental Performance}
 %-----------------------------------------------------------------------------
 
+%===============
+% 説明
+%===============
+
 Using EPCC Fortran Coarray micro-benchmark~\cite{EPCC}, we evaluated ping-pong performance 
 of PUT and GET communications compared with MPI\_Send/Recv.
 The codes are shortly shown in \tab{pingpong-code}.
 
 %-- pingpong-code.pdf
 \begin{table}[bht]
-  {\flushright {\tt me} is the image index. {\tt id} is the MPI rank number.}\\
   \begin{center}
     \caption{pingpong-code.pdf}\label{tab:pingpong-code}
     % trimはleft bottom right topの順
     \mbox{\includegraphics[trim=24mm 211mm 24mm 16mm, scale=0.7,clip]{figs/pingpong-code-r2.pdf}}
+    \begin{flushright}
+      {\tt me} is the image index. {\tt id} is the MPI rank number.
+    \end{flushright}
   \end{center}
 \end{table}
-%
+
 %-- pingpong-fig.pdf
 \begin{figure}[bht]
   \begin{center}
-  % trimはleft bottom right topの順
     \mbox{\includegraphics[trim=30mm 195mm 32mm 16mm, scale=0.75,clip]{figs/pingpong-fig-r2.pdf}}
     \caption{pingpong-fig.pdf}\label{fig:pingpong-fig}
   \end{center}
@@ -73,171 +78,169 @@ messages are echanged between two images or processes.
 In coarray PUT (a) and GET (b), inter-image synchronization is necessary for each end of 
 phases to make the passive image active and to make the active image passive.
 While, in MPI message-passing (c) and (d), such synchronization is not necessary because
-both processes are always active and know themselves when to change phases.
+both processes are always active.
 %
 On the other hand, MPI message-passing has its own overhead that coarray PUT/GET
 does not have. Because the eager protocol (c) does not use RDMA, the receiver
-must copy the received data in the local buffer to the target.
-In the rendezvous protocol, negotiations including remote address notification
+must copy the received data in the local buffer to the target. The larger the data,
+the greater the overhead cost.
+In the rendezvous protocol (d), negotiations including remote address notification
 are required prior to the communication.
+The overhead cost is not negligible when the data is small.
 
 
-\begin{figure}
+%===============
+% 結果
+%===============
+
+\begin{figure}[p]
   \begin{center}
     % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=30mm 80mm 30mm 25mm, scale=0.8, clip]{graphs/8graphs-7.pdf}}
+    %\mbox{\includegraphics[trim=30mm 80mm 30mm 25mm, scale=0.8, clip]{graphs/8graphs-7.pdf}}
+    \mbox{\includegraphics[trim=30mm 70mm 30mm 23mm, scale=0.78, clip]{graphs/8graphs-8.pdf}}
     \caption{Ping-pong performance on Fujitsu PRIMEHPC FX100 and HA-PACS/TCA}\label{fig:8graphs}
   \end{center}
 \end{figure}
 
-\fig{8graphs} shows the result of the comparison of coarray PUT and GET and MPI\_Send/Recv 
-
-
-CA, RA and RS method are evaluated on FJ-RDMA/FX100, on MPI-3/FX100, and on GASNet/HA-PACS,
-respectively.
-Bandwidth is the communication data size per elapsed time. 
-Latency is half of the ping-pong elapsed time.
+The result of the comparision between coarray PUT/GET and MPI message passing is shown in
+\fig{8graphs}.
+As the underlying communication libraries, 
+FJ-RDMA and MPI-3 are used on FX100 and GASNet and MPI-3 are used on HA-PACS.
+GET(a) and GET(b) are using the code without and with the optimization described in
+\Sec{opt-get}, respectively.
+Bandwidth is the communication data size per elapsed time, and
+latency is half of the ping-pong elapsed time.
 The difference between GET(a) and (b) is the compile-time optimization level of the 
-Omni CAF translator described in \Sec{spec-get}.
+coarray translator described in \Sec{opt-get}.
 
+%===============
+% 分かったこと
+%===============
 
-control changeのために同期が必要
+As the result, the following was found about coarray PUT/GET communication.
 
-%--- GET(b)の効果
-GET(b)の効果
-\begin{verbatim}
-      b(j1:j2) = a(i1:i2)[k] 
-\end{verbatim}
-is converted to
-\begin{verbatim}
-      b(j1:j2) = xmpf\_coarray\_get\_generic(dp_a, k, a(i1:i2)) 
-\end{verbatim}
-by the Omni CAF translator in the case of GET(a). As a result, the statement 
-causes two extra memory copies; one is the array assignment by the operator “=” 
-and the other is the copy from the communication buffer (localBuf in Figure 3)
- to the result variable of the array function xmpf\_coarray\_get\_generic. The latter 
-copy cannot be omitted by using DMA because the result variable is allocated by 
-the Fortran system, which makes it difficult for the translator to register earlier. 
-In the case of GET(b), the same assignment statement causes zero-copy communication 
-if the algorithm in Figure 3 selects the DMA scheme.
+\begin{enumerate}
 
-
-
-
-
-%------ 
-EuroMPIからコピー
-
-The EPCC Fortran Coarray microbenchmark [10] consists of three kinds of benchmarks, cafpt2pt (ping-pong performance), cafsync (image control statements) and cafhalo (halo communications). Using cafpt2pt, we evaluated the bandwidth and latency of PUT and GET communications in comparison with MPI send/recv communication. Figure 6 (a) and (b) shows the result on two supercomputers and (c) shows the communication and synchronization performed as the ping-pong communication. Note that PUT and GET must execute explicit synchronization once per phase to inform the remote image that you can start the next phase now, but MPI\_Send/Recv need not. The difference between GET(a) and (b) is the compile-time optimization level of the CAF translator as shown in Table 1. PUT-GET(b) is not included in the original cafpt2pt but added to evaluate the performance of one-sided (PUT/GET) communication without synchronization overhead. The Omni XMP compiler used the RA and CA methods over FJ-RDMA and the RS method over GASNet and MPI-3. Bandwidth is the communication data size per elapsed time. Latency is the half of the elapsed time to execute a set of ping and pong phases.
-
-(1) Bandwidth. In the case of FJ-RDMA and MPI-3, PUT and GET(b) provide as high bandwidth as MPI\_Send/Recv for 1MB or more sizes of data. We confirmed that the implementation of PUT and GET(b) to FJ-RDMA achieved zero-copy communication. In contrast, the bandwidth of GET(a) is half that of MPI\_Send/Recv in all cases. We found the cause to be the two memory copies that have arisen from the GET(a) conversion; one is the copy from localBuf to the return variable of the library function shown in GET(a) of Table 1 and the other is the execution of the array assignment statement. In contrast, the GET(b) conversion makes the statement zero-copy subroutine call. The result shows that the optimization of GET(a) to GET(b) in the CAF translator was very effective. In the case of GASNet, it is not clear why PUT and GET(b) provide such low bandwidth compared to MPI\_Send/Recv. 
-
-By the comparison between RA and CA methods on FJ-RDMA/FX100, it was found only that the peak bandwidth of GET(a) on CA method is 16\% higher than the one on RA method. Since the data accepted by the XMP runtime are the same, the reason of the difference must be the part of Fortran execution for the different codes. In addition, the bandwidth of GET(a) on CA/FJ-RDMA is 20\% higher than the one on RS/MPI-3.
-
-(2) Latency. In all cases, the latency of PUT, GET(a) and GET(b) are larger than that of MPI\_Send/Recv. The primary reason is the cost of the synchronization sync images shown in (c) of Figure 6. The costs of sync images we evaluated with the cafsync benchmark of the EPCC Coarray microbenchmark were
-3.40, 4.15, 1.64 and 1.56 [μs]
-for FJ-RDMA/FX100, MPI-3/FX100, GASNet/HA-PACS and MPI3/HA-PACS, respectively. The differences in the latency for 8-byte data between PUT and MPI\_Send/Recv were, respectively
-4.38, 6.26, 1.50 and 3.61 [μs].
-By comparison, it can be said that the major part of the difference in each case is the cost of the synchronization, which is not needed in the case of MPI\_Send/Recv. (Note that the values evaluated in the cafsync benchmark are not exactly the same as the costs of synchronizations in the cafpt2pt benchmark.) 
-
-The latency of PUT-GET(b) is 36\% to 45\% shorter than the ones of PUT and GET(b) for every case of 8-byte data. The difference appears to be the cost of sync images. For GASNet/HA-PACS, the latency of PUT-GET(b) is almost as short as the one of MPI\_Send/Recv.
-These results suggest that the CAF programmer should decrease the number of synchronization in the program as much as possible to achieve higher performance. One sync images costs the same latency as kilobytes of PUT or GET communication.
-
-
-
-\begin{description}
-\item[Bandwidth:~] 【要再読】
-In the case of FJ-RDMA and MPI-3, PUT and GET(b) provide as high 
-bandwidth as MPI\_Send/Recv for 1MB or more sizes of data. We confirmed that 
-the implementation of PUT and GET(b) to FJ-RDMA achieved zero-copy communication. 
-The reason why the buffering is not necessary in the local side is that the local 
-side variable is a coarray in this benchmark as shown in Table 2 and thus already 
-registered. 
-In contrast, the bandwidth of GET(a) is half that of MPI\_Send/Recv in all cases, 
-due to the two memory copies. The result shows that the optimization of GET(a) 
-to GET(b) in the Omni CAF translator was very effective. In the case of GASNet, 
-it is not clear why PUT and GET(b) provide such low bandwidth compared to MPI\_Send/Recv.
-
-\item[Latency:~]
-In all cases, the latency of PUT, GET(a) and GET(b) are larger than that of 
-MPI\_Send/Recv for smaller data than 16kB. The analysis and the discussion 
-is given later.
-
-\end{description}
-
-
-
-
-
-
-\begin{figure}
-  %-- fx100-bw.pdf
-  \begin{center}
-    % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=41mm 190mm 49mm 3mm, scale=0.7,clip]{figs/fx100-bw.pdf}}
-    \caption{fx100-bw.pdf FJ-RDMA CA-method}\label{fig:fx100-bw}
-  \end{center}
-  %-- HAPACS-bw.pdf
-  \begin{center}
-    % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=45mm 188mm 45mm 3mm, scale=0.7,clip]{figs/HAPACS-bw.pdf}}
-    \caption{HAPACS-bw.pdf MPI-3 RS-method}\label{fig:HAPACS-bw}
-  \end{center}
-\end{figure}
-
-結果は\fig{fx100-bw}
-
-As the result, coarray PUT and GET are slightly outperforms MPI rendezvous 
-message-passing for large data.
-In \fig{fx100-bw}, the bandwidth of PUT and GET are respectively 
+\item {\em Bandwidth.}
+Coarray PUT and GET are slightly outperforms MPI rendezvous communication for large data 
+on FJ-RDMA and MPI-3.
+On FJ-RDMA/FX100 (a), the bandwidth of PUT and GET(b) are respectively 
 +0.1\% to +18\% and -0.4\% to +9.3\% higher than MPI rendezbous in the 
 rendezvous range of 32k through 32M bytes.
-Also in \fig{HAPACS-bw}, respectively +0.3\% to +0.8\% and 
+Also on MPI-3/HA-PACS, respectively +0.3\% to +0.8\% and 
 +0.1\% to +1.3\% higher in the rendezvous range of 512k through 32M bytes.
 
-However, coarray PUT and GET are clearly slower than the MPI eager 
-communication in the range of shorter length data.
+It was confirmed from the runtime log that zero-copy communication was performed
+both in PUT and GET(b) by selecting DMA scheme described in \Sec{opt-dma}.
 
-分析:
-PUT/GETがeagerに比べて遅い理由は、ack待ちとsync allのオーバヘッド
-eagerにはこのようなオーバヘッドがない。RDMAでないのでコピーがあるけれども。
+However, on GASNet/HA-PACS (c), PUT and GET(b) has only about 60\% bandwidth for large data
+than MPI rendezvous.
+It is presumed that data copy was caused internally.
+
+\item {\em Latency.}
+On FJ-RDMA (a) and MPI-3 (b) and (d), PUT and GET(b) have larger (worse) latency than 
+MPI eager communication, in the range of $\leq$16kB on FX100 and $\leq$256kB on HA-PACS.
+
+Coarray on GASNet (c) behaves differently than other cases on (a), (b) and (d).
+Though the latency is larger than the one of MPI for all data sizes, the difference
+is smaller than the other cases. At data size 8B, the latency of PUT is 2.93$\mu$s
+and 2.1 times larger than the one of MPI 
+while 5.73$\mu$s and 3.7 times larger on the case of MPI-3 (d).
+
+\item {\em Effect of GET optimization.}
+For all ranges of all cases, GET(a) has smaller bandwidth and larger latency than GET(b).
+On FJ-RDMA (a), the bandwidth is 1.41 to 1.85 times improved in the range of 32kB to 32MB
+by changing the object code of GET(a) to (b).
+We found GET(a) caused two extra memory copies; one is performing the array assignment 
+by the Fortran library and the other is the copy from the communication buffer 
+to the result variable of the array function {\tt xmpf\_coarray\_get\_generic}. 
+The optimization described in \Sec{opt-get} has eliminated these two data copies.
+
+\end{enumerate}
+
+The issue is the large latency of coarray PUT/GET communication.
+In the next subsection, it is discussed how it should be solved 
+by the compiler and the programming.
 
 
+
+%===========================================================
+\subsection{Non-blocking communication}
+%===========================================================
+
+For latency hiding, asynchronous and non-blocking features can be expected 
+on coarray PUT communication.
+The principle is shown in \fig{nonblock-fig}.
+%
+\fig{nonblock-fig} (a) illustrates the half pattern of the ping-pong PUT communication.
+Coarray one-sided communication is basically asynchronous unless 
+synchronization is explicitly specified. Therefore, multiple communications
+without synchronization between them, as shown in (b), is closer to actural applications.
+In addition, it can be optimized using non-blocking communication as shown in (c).
+Blocking and non-blocking communications can be switched with the runtime environment
+variable in the current implementation of the Omni compiler.
+In MPI message passing, non-blocking communication can be written with 
+{\tt MPI\_Isend}, {\tt MPI\_Irecv} and {\tt MPI\_Wait}.
 
 %-- nonblock-fig.pdf
 \begin{figure}[tbh]
   \begin{center}
   % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=43mm 144mm 43mm 3mm, scale=0.7,clip]{figs/nonblock-fig-r2.pdf}}
+    \mbox{\includegraphics[trim=43mm 144mm 43mm 3mm, scale=0.6,clip]{figs/nonblock-fig-r2.pdf}}
     \caption{nonblock-fig.pdf}\label{fig:nonblock-fig}
   \end{center}
 \end{figure}
 
-改善を検討（\fig{nonblock-fig}）。
-文面はどこかにある。
 
+\fig{8var-pingpong} compares blocking/non-blocking coarray PUT and 
+MPI message passing communications.
+Two original graphs are the same as the ones of \fig{8graphs} (a).
+Other four graphs display the result of 8-variable ping-pong program, 
+which repeats the ping phase sending eight individual variables 
+from one to the other in order and the pong phase doing similarly 
+in the opposite direction.
+Each blocksize indicates the size of variables and latency includes the
+time for eight variables.
+%
+The result shows that non-blocking has significantly improved the latency of 
+PUT communication. 
+Non-blocking PUT is 4.63 times faster than blocking PUT on average from 8B to 8kB. 
+Compared to the original PUT, it performs 8 times the communication in just 
+2.11 times longer on average from 8B to 8kB.
+%
+In MPI eager protocol, non-blocking has no effect for latency hiding.
+As the result, 8-variable non-blocking PUT had lower or almost the same 
+latency than blocking and non-blocking MPI message passing.
+The ratio is up to 2.17 times at 8kB comparing to 8-variable blocking MPI.
 
 \begin{figure}
-  %-- 8var-pipo-bw.pdf
   \begin{center}
-  % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=40mm 180mm 43mm 0mm, scale=0.8,clip]{figs/8var-pipo-bw.pdf}}
-    \caption{8var-pipo-bw.pdf}\label{fig:8var-pipo-bw}
-  \end{center}
-%   %-- 8var-pipo-latency.pdf
-%   \begin{center}
-%   % trimはleft bottom right topの順
-%     \mbox{\includegraphics[trim=40mm 155mm 40mm 0mm, scale=0.8,clip]{figs/8var-pipo-latency.pdf}}
-%     \caption{8var-pipo-latency.pdf}\label{fig:8var-pipo-latency}
-%   \end{center}
+    %-- 8var-pipo-latency.pdf
+    %\mbox{\includegraphics[trim=20mm 52mm 5mm 65mm,scale=0.45,clip]{graphs/8var-latency.pdf}}
+    \mbox{\includegraphics[scale=0.45]{graphs/8var-latency-2.pdf}}
+    \caption{8-variable ping-pong latency on PRIMEHPC FX100}\label{fig:8var-pingpong}
+   \end{center}
 \end{figure}
+    
 
-その結果のthroughput（\fig{8var-pipo-bw}）。
-% その結果のthroughputとlatency（\fig{8var-pipo-bw}, \fig{8var-pipo-latency}）。
+%\begin{figure}
+%  \begin{center}
+%    %-- 8var-pipo-bw.pdf
+%    \mbox{\includegraphics[trim=40mm 180mm 43mm 0mm, scale=0.6,clip]{figs/8var-pipo-bw.pdf}}\\
+%    (a) Bandwidth of blocking and non-blocking communications\\
+%    %-- 8var-pipo-latency.pdf
+%    \mbox{\includegraphics[trim=40mm 155mm 40mm 0mm, scale=0.6,clip]{figs/8var-pipo-latency.pdf}}\\
+%    (b) Latency of blocking and non-blocking communications
+%    \caption{8-variable ping-pong on PRIMEHPC FX100}\label{fig:8var-pingpong}
+%   \end{center}
+%\end{figure}
 
 
 
+%===========================================================
 \subsection{Himeno Benchmark}
+%===========================================================
+
 
 説明はどこかにある。\fig{himeno-graph}
 

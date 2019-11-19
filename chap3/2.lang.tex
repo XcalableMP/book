@@ -219,14 +219,15 @@ coarrays, respectively.
 A coindexed object can appear almost in any expressions including array expressions.
 
 \requirement
-If a reference of coindexed object is converted to a runtime library call,
-it should be a Fortran array function. 
-For example, in in array assignment statement:
-\begin{verbatim}
-      c(1:M,1:N) = a(1:M,1:N)[k] + b(1:M,1:N)
-\end{verbatim}
-coindexed object $a(1:M,1:N)[k]$ should be converted to a function that
-returns an array value shaped $[M, N]$.
+A reference of coindexed object is basically converted to a runtime library call
+to get the result of GET communication. 
+Note that the result can be a large array.
+% For example, in in array assignment statement:
+% \begin{verbatim}
+%       c(1:M,1:N) = a(1:M,1:N)[k] + b(1:M,1:N)
+% \end{verbatim}
+% coindexed object $a(1:M,1:N)[k]$ should be converted to a function that
+% returns an array value shaped $[M, N]$.
 It should be implemented carefully to avoid data copies multiplly in the
 communication library, the runtime, the Fortran library, and the object.
 
