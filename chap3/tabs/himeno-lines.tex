@@ -1,0 +1,30 @@
+
+\begin{tabular}{@{~~}l@{~~}*{3}{|r@{~~}r@{~~}r@{~~}}}
+ \hline
+ subroutine  
+ & \multicolumn{3}{c}{MPI original}
+ & \multicolumn{3}{|c}{MPI non-blocking}
+ & \multicolumn{3}{|c}{PUT non-blocking} \\
+ \cline{2-10}
+           & LOC   & SOC   & chars  & LOC   & SOC   & chars  & LOC   & SOC   & chars  \\
+ \hline
+ \hline
+ jacobi    & 50    & 33    & 1546   & 50    & 32    & 1546   & 43    & 31    & 1314   \\
+ initcomm  & 65    & 39    & 1724   & 80    & 54    & 2380   & 19    & 19    & 421    \\
+ initmax   & 95    & 77    & 2336   & 115   & 85    & 2939   & 71    & 71    & 1584   \\
+ sendp     & 152   & 59    & 3724   & 299   & 91    & 7617   & 96    & 96    & 2435   \\
+ others    & 248   & 225   & 5872   & 250   & 227   & 5923   & 232   & 231   & 5276   \\
+ \hline
+ TOTAL     &~~~610   &~~~433   &~~15202  &~~~794   &~~~489   &~~29495  &~~~461   &~~~448   &~~11030  \\
+ \hline
+\end{tabular}
+\begin{center}
+ \begin{tabular}{l@{~~}l}
+LOC:   & Number of lines of codes excluding comment and empty lines. \\
+SOC:   & Number of Fortran statements, which may span multiple lines. \\
+chars: & Number of characters excluding those in comment lines. \\
+ \end{tabular}
+\end{center}
+
+
+

@@ -249,7 +249,7 @@ The K computer and environment shown in \fig{specs} was used.
 
 
 %===========================================================
-\subsubsection{Programs and Result}
+\subsubsection{Coarray version Himeno benchmark}
 %===========================================================
 
 For competition, we prepared the following three versions of Himeno programs.
@@ -278,7 +278,7 @@ was converted to zero-copy DMA-RDMA communication.
 
 \end{description}
 
-\begin{figure}[tbh]
+\begin{figure}[bth]
  \begin{center}
   \begin{tabular}{c@{~~~}c}
    \mbox{\includegraphics[scale=0.7]{figs/himeno-fig-2step.pdf}} &
@@ -291,17 +291,28 @@ was converted to zero-copy DMA-RDMA communication.
 \end{figure}
 
 
+%===========================================================
+\subsubsection{Measurement Result}
+%===========================================================
+
 \fig{himeno-graph} shows the measurement results for Himeno sizes M, L, and XL,
-executed on 1$\times$1, 2$\times$2, $\cdots$, 32$\times$32 nodes on the
+executed on 1$\times$1, 2$\times$2, 4$\times$4, $\cdots$, 32$\times$32 nodes on the
 K computer. The following results were obtained:
 \begin{itemize}
 \item
-PUT non-blocking is the fastest of three for 13 of 17 plots in the graph. On 
-1024 nodes, it is 1.2\%, 27\% and 42\% faster than MPI original for sizes M, 
-L, and XL.
+PUT non-blocking was the fastest in 76\% of the measurement points of the graph. 
+On 1024 nodes, it is 1.2\%, 27\% and 42\% faster than MPI original for sizes M, L, 
+and XL, respectively.
 
 \item
-MPI non-blocking is not faster than MPI original for size S. The effect of 
+As a result of analying the contents of elapsed time, it was confirmed that the
+difference of the performance is caused by the difference in communication
+time. As shown in (b) and (c), communication times of PUT non-blocking are
+56\% and 51\% of the ones of MPI blocking on 256 nodes, respectively on L and 
+XL sizes.
+
+\item
+MPI non-blocking is not always faster than MPI original. The effect of 
 non-blocking seems to be limited in MPI.
 
 \end{itemize}
@@ -309,8 +320,8 @@ non-blocking seems to be limited in MPI.
 %-- himeno-graph.pdf
 \begin{figure}[p]
   \begin{center}
-  % trimはleft bottom right topの順
-    \mbox{\includegraphics[trim=37mm 34mm 37mm 4mm, scale=0.8,clip]{figs/himeno-graph-r2.pdf}}
+    %\mbox{\includegraphics[trim=37mm 34mm 37mm 4mm, scale=0.8,clip]{figs/himeno-graph-r2.pdf}}
+    \mbox{\includegraphics[trim=35mm 47mm 30mm 14mm, scale=0.75,clip]{figs/himeno-graph-r7.pdf}}
     \caption{himeno-graph-r2.pdf}\label{fig:himeno-graph}
   \end{center}
 \end{figure}
@@ -320,17 +331,36 @@ non-blocking seems to be limited in MPI.
 \subsubsection{Productivity}
 %===========================================================
 
- Table 4 compares the scale of the source codes. The reason for the big difference 
-in subroutine initcomm is that MPI requires definitions of Cartesian to describe 
-3D nodes, but CAF does not require anything corresponding to it. Similarly, 
-in subroutine initmax, MPI requires definitions of the derived types to describe 
-the shapes of halo regions. In subroutine sendp for the halo communication, 
-the number of characters is one third but the number of statements is almost 
-the same between PUT and MPI non-blocking. This means that the description 
-of the one-sided communication in CAF is more compact than the description 
-of the non-blocking two-sided communication of MPI.
+\tab{himeno-lines} compares the scale of the source codes. 
+The following features can be found.
+
+\begin{itemize}
+\item
+PUT blocking requires less characters for programming than others,
+especially in subroutines {\tt initcomm} and {\tt initmax}.
+The MPI programmer must describe Cartesian 
+to represent neighboring nodes in {\tt initcomm}, and must declare 
+MPI vector types to describe the communication pattern in {\tt initmax}.
+In contrast, the coarray programmer easily represent 
+neighboring images with coindex notation, e.g., {\tt [i,j-1,k]}, and 
+communication patterns with subarray notations, e.g., {\tt p(1:imax, 1:jmax, 1)}.
+
+\item
+Fortran statement of MPI program tends to be longer than coarray's.
+Because, comparing PUT non-blocking to MPI non-blocking,
+the number of characters is one third while the number of statements is almost the same.
+This means that coarray program is more compact than the MPI program for each
+statement. MPI library functions often require long sequence of arguments.
+
+\end{itemize}
 
 
+\begin{table}
+ \caption{Comparison of source code scales for Himeno benchmark}\label{tab:himeno-lines}
+ \begin{center}
+  \input{tabs/himeno-lines.tex}
+ \end{center}
+\end{table}
 
 
 %-- fx100-pipo.pdf
