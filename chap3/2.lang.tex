@@ -1,4 +1,4 @@
-\section{Requirements from Coarray Features}\label{sec:spec}
+\section{Requirements from Language Specifications}\label{sec:spec}
 
 XMP Fortran language specification supports a major part of coarray features defined in 
 Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
@@ -15,18 +15,15 @@ to the compiler in order to implement the coarray features.
 %-----------------------------------------------------------------------------
 
 In the Fortran standard, an {\bf image} is defined as a instance of a program. 
-Each image executes the same program and has its own data individually 
-(SPMD: Single Program/Multiple Data).
-Each image has a different image index, which is one of $1, \cdots, n$, 
-where $n$ is the number of images determined at runtime. 
-While the Fortran standard does not define where each image is executed, 
-XMP defines the mapping of the images to the executing nodes as follows;
-image $k$ is always executed on executing node $k$, 
-where $1 \leq k \leq n$ and 
+Each image executes the same program and has its own data individually.
+Each image has a different image index $k$.
+While the Fortran standard itself does not specify where each image is executed, 
+XMP specifies that images are mapped to executing nodes on a one-to-one basis.
+Therefore, image $k$ is always executed on executing node $k$, where $1 \leq k \leq n$ and 
 $n$ is the number of images and also the number of the executing nodes. 
-In addition, since each MPI rank number of {\tt MPI\_COMM\_WORLD} (0-origin) is 
-always mapped to an XMP node number in order, local data on image $k$ can be
-accessed with MPI functions as data on rank $(k - 1)$.
+Since each MPI rank number of {\tt MPI\_COMM\_WORLD} (0-origin) is 
+always mapped to an XMP node number in order, image $k$ is corresponding to 
+rank $(k - 1)$.
 
 Note that the executing nodes can be a subset of the entire (initial) node set. 
 For example, two distinct node sets can execute two coarray subprograms concurrently.
@@ -54,12 +51,8 @@ When the execution encounters the {\tt END TASK} directive corresponding to the
 %   See the language spacifications [3].
 
 \requirement
-%Memory management is necessary to cope with changes of the executing images.
-The runtime library should change the executing image set and my position of the set 
-at the entry point of the task, and reinstate them at the exit point of the task.
-
-%The XMP compiler manages these values in stack.
-%タスク実行のときのスタックの使い方、構文が入れ子なので同じレベルに戻ることができること。
+The runtime library should manage the executing image set and the current image index 
+in stack in order to reinstate them at the exit point of the task.
 
 
 %-----------------------------------------------------------------------------
@@ -105,52 +98,6 @@ Thanks to the syn-metric memory allocation rule, all executing images can have
 the same symmetrical memory layout, which makes it possible to calculate the address 
 of the remote coarray with no prior inter-image communication.
 
-% 2. Declaration
-%   Either static or allocatable coarray data objects can be used in the program. 
-%   Use- and host-associations are available but common- or equivalence-
-%   association are not allowed in conformity with the Fortran2008 standard.
-%   Current restrictions against Fortran2008 coarray features:
-%     * Rank (number of dimensions) of an array may not be more than 7.
-%     * A coarray cannot be of a derived type nor be a structure component.
-%     * A coarray cannot be of quadruple precision, i.e., 16-byte real or 32-byte 
-%       complex.
-%     * Interface block cannot contains any specification of coarrays. To describe
-%       explicit interface, host-assocication (with internal procedure) and use-
-%       association (with module) can be used instead.
-%     * A pointer component of a derived-type coarray is not allowed.
-%     * An allocatable component of a derived-type coarray cannnot be referrenced
-%       as a coindexed object.
-%     * A derived-type coarray cannot be defined as allocatable.
-
-% 2.1  Static Coarray
-%   E.g.
-%       real(8) :: a(100,100)[*], s(1000)[2,2,*]
-%       integer, save :: n[*], m(3)[4,*]
-%   The data object is allocated previously before the execution of the user 
-%   program.  A recursive procedure cannot have a non-allocatable coarray without 
-%   SAVE attribute.
-%   Current restrictions against Fortran2008 coarray features:
-%     * Each lower/upper bound of the shape must be such a simple expression that 
-%       is an integer constant literal, a simple integer constant expression, or
-%       a reference of an integer named constant defined with a simple integer 
-%       constant expression.
-%     * A coarray cannot be initialized with initialization or with a DATA 
-%       statement.
-%     
-% 2.2  Allocatable Coarray
-%   E.g.
-%       real(8), allocatable :: a(:,:)[:], s(:)[:]
-%       integer, allocatable, save :: n[:], m(:)[:,:]
-%   The data object is allocated with an ALLOCATE statement as follows:
-%       allocate ( a(100,100)[*], s(1000)[2,2,*] )
-%   The allocated coarray is deallocated with an explicit DEALLOCATE statement or 
-%   with an automatic deallocation at the end of the scope of the name unless it 
-%   has SAVE attribute.
-%   Current restrictions against fortran2008 coarray features:
-%     * A scalar coarray cannot be allocatable.
-%     * An allocatable coarray as a dummy argument cannot be allocated or 
-%       deallocated inside the procedure.
-
 \requirement
 Static coarrays must be allocated and made accessible remotely
 before the execution of the user program, and 
@@ -168,18 +115,20 @@ is encountered.
 %-----------------------------------------------------------------------------
 
 Coarray features include three types of communications between images, i.e.,
-\begin{itemize}
-\item reference and definition to remote coarrays (GET and PUT communication),
-\item collective communication (intrinsic subroutines {\tt CO\_SUM}, {\tt CO\_MAX}, 
+reference and definition to remote coarrays,
+collective communications (intrinsic subroutines {\tt CO\_SUM}, {\tt CO\_MAX}, 
 {\tt CO\_MIN} and {\tt CO\_BROADCAST}), and
-\item atomic operations ({\tt ATOMIC\_DEFINE} and {\tt ATOMIC\_REF}).
-\end{itemize}
+atomic operations ({\tt ATOMIC\_DEFINE} and {\tt ATOMIC\_REF}).
 
-Omni compiler implements the latter two communications using the corresponding 
-functions in MPI. The rest of this section describes the former communication.
+MPI library has the similar functions to 
+
+Collective communications and atomic operations are in the form of 
+intrinsic procedures and similar ones are found in MPI library.
+Communication for reference and definition to remote coarrays are 
+characteristic for coarray features.
 
 %===========================================================
-\subsubsection{PUT communication}\label{sec:spec-put}
+%\subsubsection{PUT communication}\label{sec:spec-put}
 %===========================================================
 
 PUT communication is caused by an assignment statement with a {\bf coindexed variable} 
@@ -189,26 +138,17 @@ as the left-hand side expression, e.g.,
 \end{verbatim}
 This statement is to cause the PUT communication to the array element $a(i,j)$ on image $k$
 with the value of the left-hand side.
-
-Fortranの配列代入文を使えば、配列から配列へのPUT通信を記述することもできる。
-例えば以下の配列代入文は、$M N$ 要素のPUT通信を生じさせる。
+%
+Using Fortran array assignment statement, array-to-array PUT communication 
+can be written easily. E.g., the following statement causes $M N$-element 
+PUT communication.
 \begin{verbatim}
       a(1:M,1:N)[k] = alpha * b(1:M,1:N) + c(1:M,1:N)
 \end{verbatim}
 
-\requirement
-配列代入文では、一般には右辺の評価結果をFortranシステムが一時領域に置くが、
-通信バッファをできる限り多重にしない工夫が必要である。
-右辺が配列の参照だけの場合はゼロコピー通信とすることが望ましい。
-
-% ダブリ。同期の方で言う。
-%また、次のimage制御文によって同期が行われるまでPUTされたデータは他のimageから
-%参照されないので、実行はPUT通信の完了を待たないで次に進むことができる
-%（non-blocking communication）。
-
 
 %===========================================================
-\subsubsection{GET communication}\label{sec:spec-get}
+%\subsubsection{GET communication}\label{sec:spec-get}
 %===========================================================
 
 GET communication is caused by referencing the {\bf coindexed object}, 
@@ -219,106 +159,66 @@ coarrays, respectively.
 A coindexed object can appear almost in any expressions including array expressions.
 
 \requirement
-A reference of coindexed object is basically converted to a runtime library call
-to get the result of GET communication. 
-Note that the result can be a large array.
+To implement definition/reference to coindexed variable/object,
+PUT/GET one-sided communication is suitable to be used.
+%
+To avoid costly processing such as remote procedure call, 
+RDMA (Remote Direct Memory Access)-based implementation is desirable.
+%
+On PUT/GET communication for large data, redundant multiple memory copies 
+should carefully be avoided for all software layers, 
+the communication library, the runtime, the Fortran library, and the object.
+
+% A reference of coindexed object is basically converted to a runtime library call
+% to get the result of GET communication. 
+% Note that the result can be a large array.
 % For example, in in array assignment statement:
 % \begin{verbatim}
 %       c(1:M,1:N) = a(1:M,1:N)[k] + b(1:M,1:N)
 % \end{verbatim}
 % coindexed object $a(1:M,1:N)[k]$ should be converted to a function that
 % returns an array value shaped $[M, N]$.
-It should be implemented carefully to avoid data copies multiplly in the
-communication library, the runtime, the Fortran library, and the object.
 
 
 %-----------------------------------------------------------------------------
 \subsection{Inter-image Synchronization}\label{spec-sync}
 %-----------------------------------------------------------------------------
-Basically, the Fortran language specification does not guarantee the inter-image 
-data dependency unless any image control statements are explicitly used.
-\fig{sync-ex} shows an example of program fragment describing inter-image communication
-and synchronization by the reference and definition of coarrays and {\tt SYNC ALL} statement.
-Here, all variables {\tt a}, {\tt b}, {\tt c}, {\tt x}, {\tt y} and {\tt z} are coarrays.
-%
-An {\bf image control statement}, such as {\tt SYNC ALL} and {\tt SYNC IMAGES} statements, 
-separates a procedure into {\bf segments}. In \fig{sync-ex}, portions between lines~2 and 9 and 
-between lines~11 and 20 are segments.
-The synchronization between images does not need to complete until encountering the 
-image control statements. And the compiler optimization does not allowed to perform 
-the code motion across the image control statement. In \fig{sync-ex}, 
-{\tt sync all} in line~10 should wait for completion of the definition to coarray {\tt a} 
-in line~4, and should prevent the code motion of lines~4 and 5 and lines~16, 17 and 19 
-from crossing the {\tt sync all} in line~10.
 
-緩い同期である。ここに最適化のチャンスがある。
+The access order of coarrays between images must be explicitly controled by the 
+programmer using the {\bf image control statement}, 
+such as {\tt SYNC ALL} and {\tt SYNC IMAGES} statements. 
+It allows the compiler system to make PUT/GET communication asynchronous.
+The portion between such two image control statements is called as {\bf segmemt}.
 
-\begin{figure}[hbt]
- \begin{center}
-\begin{verbatim}
- 1      sync all
- 2
- 3      if (this_image()==1) then
- 4          a[2]=
- 5          b[2]=
- 6          =c[2]
- 7          x=
- 8          y=
- 9          =z
-10      endif
-11
-12      sync all
-13
-14      if (this_image()==2) then
-15          =a
-16          b=
-17          c=
-18          =x[1]
-19          y[1]=
-20          z[1]=
-21      endif
-22
-23      sync all
-
-\end{verbatim}
-  \caption{Example of inter-image synchronization}
-  \label{fig:sync-ex}
- \end{center}
-\end{figure}
-
-
-
-各イメージの中では、従来のFortran仕様に従う依存関係の維持が必要である。
-non-coarrayデータに関しては従来とおりだが、coarrayについて注意が必要。
-In order to keep data dependency among the definitions and 
-references in the coarray, the non-blocking communication should be restricted.
-\fig{block-ex} にdata dependencyに気をつけなければならない例を示す。
-同じリモートデータに対して同じsegment内で複数回アクセスする場合である。
-
-\begin{figure}[hbt]
- \begin{center}
+On the other hand, inside an image, the compiler system must maintain data 
+dependency as before. It suppress the {\bf non-blocking communication},
+which postpones waiting for completion.
+In order to keep data dependency among the definitions and references to the same 
+coarray in the same segment, the non-blocking communication should be restricted.
+The example bellow in which the same remote coarray is accessed some times 
+inside the same segment.
+\begin{quote}
 \begin{verbatim}
  1      if (this_image()==2) then
  2          a[2]=
- 3          =a[2]     ! should wait for the completion of line 2 to keep flow dependency.
- 4          a[2]=     ! should wait for the completion of line 3 to keep anti dependency.
+ 3          =a[2]
+ 4          a[2]=
  5      endif
-
 \end{verbatim}
-  \caption{Example of intra-image communication blocking}
-  \label{fig:block-ex}
- \end{center}
-\end{figure}
+\end{quote}
+In this case, the update of {\tt a} in line 2 must be completed before 
+the reference in line 3, which must be completed before the update in line 4.
 
 
 \requirement
-To reduce the latency overhead, non-blocking one-sided communication is effective.
-The compiler should generate non-blocking GET communication as long as possible.
-In usual case, the completion point of the non-blocking is the end of the segment, as
-shown in \fig{sync-ex}.  However, the possibility to meet the condition shown in
-\fig{block-ex} should be took account. If the PUT communication is always in blocking, 
+%To reduce the latency overhead, non-blocking one-sided communication is effective.
+%The compiler should generate non-blocking GET communication as long as possible.
+In usual case, the completion point of the non-blocking is the end of the segment.
+However, the possibility to meet the condition shown above should 
+be took account. If the PUT communication is performed always in blocking, 
 only the flow dependency should be care; the previous PUT communication (line~2) 
 should be completed before the following GET communication (line~3).
+
 
 %-----------------------------------------------------------------------------
 \subsection{Subarrays and Data Contiguity}\label{sec:spec-contig}
