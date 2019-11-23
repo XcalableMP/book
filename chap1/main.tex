@@ -28,7 +28,7 @@
 % \usepackage{amsmath}
 % \usepackage{ascmac}
 \usepackage[dvipdfmx]{graphicx}  % for EPS and PDF 
-% \usepackage{url}
+\usepackage{url}
 \usepackage{fancyvrb}
 % \usepackage{makeidx}
 % \usepackage{float}
@@ -82,6 +82,12 @@ stringstyle={\small\ttfamily},
 
 %\newenvironment{myfigure}{\begin{figure}[ht]\begin{center}}{\end{center}\end{figure}}
 
+\newenvironment{mynote}{\vspace{1zw}\noindent\hrulefill\\\noindent {\bf Note}:}
+{\\\noindent\hrulefill\\}
+
+\newenvironment{myhint}{\vspace{1zw}\noindent\hrulefill\\\noindent {\bf Hint}:}
+{\\\noindent\hrulefill\\}
+
 \def\Directive#1{{\tt #1}\index{#1@{\tt #1}}\index{Directive!#1@{\tt #1}}}
 
 %\def\Syntax#1{\index{{\tt #1}}\index{Syntax!{\tt #1}}}
@@ -93,6 +99,12 @@ stringstyle={\small\ttfamily},
 \def\Example#1{\index{Example!#1@{\tt #1}}}
 
 \def\Intrinsic#1{\index{#1@{\tt #1}}\index{Intrinsic and Library Procedures!#1@{\tt #1}}}
+
+
+\DefineVerbatimEnvironment{XFsyntax}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
+frame=lines,label=XcalableMP Fortran Syntax}
+\DefineVerbatimEnvironment{XCsyntax}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
+frame=lines,label=XcalableMP C Syntax}
 
 \DefineVerbatimEnvironment{Fexample}{Verbatim}{numbers=left,numbersep=3pt,stepnumber=5,%
 frame=single,label=\Fort}
@@ -119,10 +131,14 @@ frame=single,label=MPI C}
 \DefineVerbatimEnvironment{MPIFexample}{Verbatim}{numbers=right,numbersep=3pt,stepnumber=5,%
 frame=single,label=MPI Fortran}
 
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+\setcounter{totalnumber}{6}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
-\title*{XcalableMP programming model and language}
+\title*{XcalableMP Programming Model and Language}
 % Use \titlerunning{Short Title} for an abbreviated version of
 % your contribution title if the original one is too long
 
@@ -132,7 +148,7 @@ frame=single,label=MPI Fortran}
 
 \institute{
 Hitoshi Murai \at RIKEN Center for Computational Science, 7-1-26
-Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan
+Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan,
 \email{h-murai@riken.jp}
 \and
 Masahiro Nakao \at RIKEN Center for Computational Science,
@@ -140,7 +156,7 @@ Masahiro Nakao \at RIKEN Center for Computational Science,
 \email{masahiro.nakao@riken.jp}
 \and
 Mitsuhisa Sato \at RIKEN Center for Computational Science, 7-1-26
-Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan
+Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan,
 \email{msato@riken.jp}
 }
 
@@ -155,8 +171,8 @@ Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan
 Fortran and C for distributed-memory parallel computers, and can be
 classified as a partitioned global address space (PGAS) language. One of
 remarkable characteristics of XMP is that it supports both of
-global- and local-view parallel programming. This chapter describes the
-programming model and language specification of XMP.}
+global-view and local-view parallel programming. This chapter describes
+the programming model and language specification of XMP.}
 
 %\tableofcontents
 
