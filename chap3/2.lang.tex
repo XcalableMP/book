@@ -1,9 +1,9 @@
 \section{Requirements from Language Specifications}\label{sec:spec}
 
-XMP Fortran language specification supports a major part of coarray features defined in 
-Fortran~2008 standard~\cite{F08}, and intrinsic procedures 
-{\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN} and {\tt CO\_BROADCAST} defined in 
-Fortran~2018 standard~\cite{F18} were supported.
+XMP Fortran language specification~\cite{xmp} supports a major part of 
+coarray features defined in Fortran~2008 standard~\cite{coarray}, 
+and intrinsic procedures {\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN} and 
+{\tt CO\_BROADCAST} defined in Fortran~2018 standard~\cite{coarray18} were supported.
 And also XMP C language specification extended to support coarray features.
 
 This section introduces the coarray features and what is required
@@ -111,50 +111,42 @@ is encountered.
 
 
 %-----------------------------------------------------------------------------
-\subsection{Communications}\label{sec:spec-comm}
+\subsection{Communication and Synchronization}\label{sec:spec-comm}
 %-----------------------------------------------------------------------------
 
-Coarray features include three types of communications between images, i.e.,
+Coarray features in XMP include three types of communications between images, i.e.,
 reference and definition to remote coarrays,
 collective communications (intrinsic subroutines {\tt CO\_SUM}, {\tt CO\_MAX}, 
 {\tt CO\_MIN} and {\tt CO\_BROADCAST}), and
 atomic operations ({\tt ATOMIC\_DEFINE} and {\tt ATOMIC\_REF}).
-
-MPI library has the similar functions to 
-
-Collective communications and atomic operations are in the form of 
-intrinsic procedures and similar ones are found in MPI library.
+%
+Collective communications and atomic operations are similar to the ones 
+in MPI library.
 Communication for reference and definition to remote coarrays are 
 characteristic for coarray features.
 
-%===========================================================
-%\subsubsection{PUT communication}\label{sec:spec-put}
-%===========================================================
 
+%- PUT communication
 PUT communication is caused by an assignment statement with a {\bf coindexed variable} 
 as the left-hand side expression, e.g.,
 \begin{verbatim}
       a(i,j)[k] = alpha * b(i,j) + c(i,j)
 \end{verbatim}
-This statement is to cause the PUT communication to the array element $a(i,j)$ on image $k$
-with the value of the left-hand side.
+This statement is to cause the PUT communication to the array element {\tt a(i,j)}
+on image {\tt k} with the value of the left-hand side.
 %
 Using Fortran array assignment statement, array-to-array PUT communication 
-can be written easily. E.g., the following statement causes $M N$-element 
-PUT communication.
+can be written easily. E.g., the following statement causes 
+{\tt M}$\times${\tt N}-element PUT communication.
 \begin{verbatim}
       a(1:M,1:N)[k] = alpha * b(1:M,1:N) + c(1:M,1:N)
 \end{verbatim}
 
-
-%===========================================================
-%\subsubsection{GET communication}\label{sec:spec-get}
-%===========================================================
-
+%- GET communication
 GET communication is caused by referencing the {\bf coindexed object}, 
 which is represented by a coarray variable with cosubscripts enclosed by square brackets, 
-e.g., $s[1,2]$ and $a(i,j)[k]$, where $s$ and $a$ are scalar and two-dimensional array 
-coarrays, respectively.
+e.g., {\tt s[1,2]} and {\tt a(i,j)[k]}, where {\tt s} and {\tt a} are scalar and 
+two-dimensional array coarrays, respectively.
 %
 A coindexed object can appear almost in any expressions including array expressions.
 
@@ -181,52 +173,66 @@ the communication library, the runtime, the Fortran library, and the object.
 
 
 %-----------------------------------------------------------------------------
-\subsection{Inter-image Synchronization}\label{spec-sync}
+\subsection{Synchronization}\label{sec:spec-sync}
 %-----------------------------------------------------------------------------
 
-The access order of coarrays between images must be explicitly controled by the 
+%-- between images
+The access order of coarrays between images is explicitly controlled by the 
 programmer using the {\bf image control statement}, 
 such as {\tt SYNC ALL} and {\tt SYNC IMAGES} statements. 
 It allows the compiler system to make PUT/GET communication asynchronous.
-The portion between such two image control statements is called as {\bf segmemt}.
+The sequence of execution between the image control statements is called 
+as a {\bf segment}.
+An asynchronous communication must be completed by the end of the segment.
 
-On the other hand, inside an image, the compiler system must maintain data 
-dependency as before. It suppress the {\bf non-blocking communication},
-which postpones waiting for completion.
+%-- inside image
+While, inside each image, the compiler must maintain data dependency 
+as before even if it contains coarray communications.
+It suppress the {\bf non-blocking communication},
+which postpones waiting for communication completion.
 In order to keep data dependency among the definitions and references to the same 
 coarray in the same segment, the non-blocking communication should be restricted.
 The example bellow in which the same remote coarray is accessed some times 
 inside the same segment.
 \begin{quote}
 \begin{verbatim}
- 1      if (this_image()==2) then
+ 1      if (this_image()==1) then
  2          a[2]=
  3          =a[2]
  4          a[2]=
- 5      endif
+ 5          a[2]=
+ 6      endif
 \end{verbatim}
 \end{quote}
-In this case, the update of {\tt a} in line 2 must be completed before 
-the reference in line 3, which must be completed before the update in line 4.
-
+Between lines 2 and 3, the completion wait for PUT communication is necessary
+to avoid referencing data that is not defined completely.
+Similarly, between lines 3 and 4, the completion wait for GET communication is 
+necessary to avoid referencing data that is getting updated.
+However, between lines 4 and 5, the completion wait is not necessary.
+The issue of race condition on image 2 cannot be avoid by the completion wait
+on image 1 in general and avoiding it is the matter of the programmer.
 
 \requirement
 %To reduce the latency overhead, non-blocking one-sided communication is effective.
 %The compiler should generate non-blocking GET communication as long as possible.
-In usual case, the completion point of the non-blocking is the end of the segment.
-However, the possibility to meet the condition shown above should 
-be took account. If the PUT communication is performed always in blocking, 
-only the flow dependency should be care; the previous PUT communication (line~2) 
-should be completed before the following GET communication (line~3).
+Unless the same remote data is accessed from the same segment, 
+completion of non-blocking completion is can be delayed until the end of the segment.
+%However, the possibility to meet the condition above should 
+%be took account. 
+Because the data received by the GET communication is usually referenced soon, 
+non-blocking GET communication is hard to be used. So if GET communication is
+always on blocking, only the flow dependency (between lines 2 and 3) should be care of.
 
 
 %-----------------------------------------------------------------------------
 \subsection{Subarrays and Data Contiguity}\label{sec:spec-contig}
 %-----------------------------------------------------------------------------
 
-In Fortran, if an array, except dummy argument, is declared as {\tt real a(1:M,1:N)}, 
-the reference to the whole array (i.e., {\tt a} or {\tt a(:,:)} or {a(1:M,1:N)})
-is defined {\bf contiguous}. 
+Except dummy argument, an array is fully {\bf contiguous} across the dimensions.
+A subarray of the array can be fully or partially contiguous or non-contiguous.
+For example, if an array is declared with the shape {\tt a(1:M,1:N)},
+the whole array (referenced as {\tt a} or {\tt a(:,:)} or {a(1:M,1:N)})
+is fully contiguous and a subarray {\tt a(2:5,3)} is partially contiguous.
 We defined a term {\bf contiguous length} as the length how long the data is partially
 contiguous. For example, the contiguous lengths of {\tt a(2,3)} and {\tt a(2:5,3)} are
 1 and 4 respectively.  {\tt a(1:M,1:3)} is two-dimensionally contiguous and has 
@@ -234,40 +240,86 @@ contiguous length $2 \times {\tt M}$.
 {\tt a(1:M-1,1:3)} is one-dimensionally contiguous and has 
 contiguous length $({\tt M} - 1)$.
 
-
 \requirement
-通信の高速化のためには，十分に長い範囲の連続性を実行時に抽出する必要がある．
-一般にノード間通信で立ち上がりレイテンシ時間がほぼ無視できるようになるデータ量は
-数千バイトであることから，配列や部分配列の1次元め（Fortranでは1番左の添字）が
-連続であっても数千要素に満たない場合には，次元を跨いだ連続性まで抽出して，
-十分に長い連続データとして通信する技術が必要である．
-【fx100-latencyのグラフから数千バイトを言ってもよい。】
-
-GET通信と同様，a(i,j)[k]は代わりに全体配列にも部分配列にもなれるので，
-coindexed variableについても次元を跨いだ連続性の抽出が必要である．
-それに加えて、ローカル側、すなわち、右辺式データの連続性も意識に入れなければならない。
-高速な通信を実現するには，左辺と右辺で共通に連続な区間を検出してその単位で通信を反復するか，
-右辺データは連続区間にpackして左辺の連続区間を単位として通信を反復するなどの戦略がある。
-
+For high-performance communication, it is important to find the contiguous length
+across the dimensions. Because, thousands of bytes of contiguous data is needed to be 
+comparable to the communication latency in general, and only the first dimension 
+of the array is not always long enough.
+%
+% a(i,j)[k]は代わりに全体配列にも部分配列にもなれるので，
+% coindexed variableについても次元を跨いだ連続性の抽出が必要である．
+% それに加えて、ローカル側、すなわち、右辺式データの連続性も意識に入れなければならない。
+% 高速な通信を実現するには，左辺と右辺で共通に連続な区間を検出してその単位で通信を反復するか，
+% 右辺データは連続区間にpackして左辺の連続区間を単位として通信を反復するなどの戦略がある。
 
 
 %-----------------------------------------------------------------------------
 \subsection{Coarray C Language Specifications}\label{sec:spec-c}
 %-----------------------------------------------------------------------------
 
-C言語にも配列式、配列代入を導入することでFortranと同様なcoarray featuresを仕様定義した。
+XMP language specification extends C language to support coarray 
+features. Array notations such as subarray and array assignment statement
+is adopted into C language.
+%
+In XMP/C, a coarray is a data object but is not a pointer.
+A coarray is either 1) of basic type, 2) a structure whose
+any component is not a pointer, or 3) an array of 1 or 2 or 3.
 
-coarrayはデータ実体に限る。ポインタはcoarrayになれない。形式的には、
-1)基本型、2)ポインタを含まない構造型、または、3) 1or2or3の配列とする。
-Cのcoarrayにおいてもstaticとallocatableがある。ファイル直下で宣言するか
-static指示したcoarrayはstatic coarrayである。ライブラリ関数xxxをつかって
-割付けたデータ領域はallocatable coarrayであり、ライブラリ関数は
-allocatable coarrayへのポインタを返す。
-Cのcoarrayは、通常のCの変数と同じように、引数渡しやcast演算によって自由に
-その型と形状の解釈を変えることができる。
+XMP/C also has static and allocatable coarrays.
+Coarray variables declared directly in the file and declared with 
+the {\tt static} attribute are static.
+Coarray variables can be allocated with intrinsic functions.
 
-これらの仕様と制限は、Cプログラマ
-にとっての使いやすさを考えて、Cらしいプログラミングスタイルを認めた。
-Coarray C++とは違うアプローチである。
+% Cのcoarrayは、通常のCの変数と同じように、引数渡しやcast演算によって自由に
+% その型と形状の解釈を変えることができる。
+% これらの仕様と制限は、Cプログラマ
+% にとっての使いやすさを考えて、Cらしいプログラミングスタイルを認めた。
+% Coarray C++とは違うアプローチである。
 
-cf.\ air:/Users/iwashita/Desktop/coarray/Project\_Coarray/の下にいくつか
+% cf.\ air:/Users/iwashita/Desktop/coarray/Project\_Coarray/の下にいくつか
+
+
+%===========================================================
+\subsubsection{Fortran wrapper}
+%===========================================================
+
+While the coarray runtime is written in C, coarray features are 
+based on array notations specified in Fortran~90 or later.
+The Fortran wrapper, written in Fortran, is a part of the coarray runtime 
+and mediates Fortran and C argument interfaces.
+
+For example, suppose {\tt a} is a two-dimensional array coarray of 
+16-byte complex type. The result of a reference of a coindexed object 
+{\tt a(1:10,2:19)[k]} will be a two-dimensional array shaped {\tt [} 10, 18 {\tt ]}. 
+The coarray translator converts it to a function call:
+\begin{verbatim}
+ xmpf_coarray_get_generic(dp_a, k, a(1:10,2:19))
+\end{verbatim}
+where {\tt dp\_a} is the descriptor of coarray {\tt a}.
+%
+Note that the translator uses the generic name that can correspond to 
+dozens of the names of Fortran wrapper functions. In this case, 
+the Fortran compiler select a specific name for the type and the number of 
+dimensions and converts the name to ``{\tt xmpf\_coarray\_get2d\_z16}'',
+where ``{\tt 2d}'' and ``{\tt z16}'' means two-dimensional and 
+16-byte complex type, respectively.
+%
+The last argument ``{\tt a(1:10,2:19)}'' is a mold expression only to refer
+the communication pattern and the shape of the result value.
+
+For the input above, the Fortran wrapper calls ULR function as follows:
+\begin{verbatim}
+ xmpf_coarray_get_array(dp_a,base,16,k,dst,2,skip,extent)
+\end{verbatim}
+where, 
+%
+{\tt base} is the address of {\tt a(1,2)},
+% that is the base address of {\tt a(1:10,2:19)},
+%
+{\tt dst} is the address of the result variable,
+% of 16-byte complex shaped {\tt [} 10, 18 {\tt ]}
+%in Fortran, or, the pointer to 16 $\times$ 10 $\times$ 80-byte memory in C, and
+%
+{\tt skip} and {\tt extent} are integer arrays of length 2 
+to represent the pattern of the communication data.
+

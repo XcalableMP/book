@@ -1,19 +1,23 @@
 \section{Conclusion}\label{sec:concl}
 
-本章では、XMPの文脈の中におけるcoarray featuresの位置付けを示し、
-Omni XMP compilerの中での特徴的な実装を紹介した。
+This chapter described the coarray features in the context of XMP and 
+characteristic implementation of the coarray translator.
 
-%-- 実装の特徴：library階層
+For memory allocation and registration, RS, RA and CA methods were
+implemented corresponding to the communication library GASNet, FJ-RDMA
+and MPI-3.
 
-評価では、同じローカルビューを記述するプログラミングモデルである
-MPI message passingと比較し、性能の特徴を
+For the coarray PUT and GET communications, DMA and four buffering methods
+were described. The effect of the non-blocking PUT communication was
+analyzed, and the knowledge is used to make the coarray version Himeno benchmark
+from the original MPI version.
+The measurement result on 1024 nodes of the K computer, the coarray version 
+is 27\% and 42\% faster than the original MPI version, respectively for sizes
+L and XL.
+The effect of the optimization of GET communication was also obvious on 
+the ping-pong benchmark on HA-PACS/TCA and Fujitsu PRIMEHPC FX100.
 
-%-- 実装の特徴: contiguity重視
-
-実測を元にして処理系の性能を評価した。
-Coarray featuresは
-
-XMPの中でローカルビューを担うcoarray featuresは、性能
-
-その価値と言えるローカルビュープログラミングの性能を評価した。
+As an evaluation of productivity, the coarray program uses less than half as
+many characters as MPI message passing program to write the same algorithm
+of Himeno benchmark.
 
