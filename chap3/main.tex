@@ -200,13 +200,13 @@ with a source-to-source translator and layered runtime libraries.
 %
 Three memory allocation methods for coarrays were implemented for
 communication libraries GASNet, MPI-3 and Fujitsu's native interface.
-
+%
 For the coarray PUT/GET communication, algorithms using DMA (zero-copy) 
 and buffering were introduced. The important techniques for achieving 
 high performance were the non-blocking PUT communication implemented 
 in the runtime library and the optimization for the GET communication 
 in the translator.
-
+%
 Using the ping-pong benchmark and the modified version, the fundamental
 performance was evaluated and analyzed.
 The MPI version of the Himeno benchmark is ported to coarray version
@@ -216,7 +216,7 @@ outperformed the original and non-blocking MPI versions.
 }
 
 %\tableofcontents
-\clearpage
+%\clearpage
 
 %
 % Sections

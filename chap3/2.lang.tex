@@ -111,7 +111,7 @@ is encountered.
 
 
 %-----------------------------------------------------------------------------
-\subsection{Communication and Synchronization}\label{sec:spec-comm}
+\subsection{Communication}\label{sec:spec-comm}
 %-----------------------------------------------------------------------------
 
 Coarray features in XMP include three types of communications between images, i.e.,
@@ -278,48 +278,4 @@ Coarray variables can be allocated with intrinsic functions.
 
 % cf.\ air:/Users/iwashita/Desktop/coarray/Project\_Coarray/の下にいくつか
 
-
-%===========================================================
-\subsubsection{Fortran wrapper}
-%===========================================================
-
-While the coarray runtime is written in C, coarray features are 
-based on array notations specified in Fortran~90 or later.
-The Fortran wrapper, written in Fortran, is a part of the coarray runtime 
-and mediates Fortran and C argument interfaces.
-
-For example, suppose {\tt a} is a two-dimensional array coarray of 
-16-byte complex type. The result of a reference of a coindexed object 
-{\tt a(1:10,2:19)[k]} will be a two-dimensional array shaped {\tt [} 10, 18 {\tt ]}. 
-The coarray translator converts it to a function call:
-\begin{verbatim}
- xmpf_coarray_get_generic(dp_a, k, a(1:10,2:19))
-\end{verbatim}
-where {\tt dp\_a} is the descriptor of coarray {\tt a}.
-%
-Note that the translator uses the generic name that can correspond to 
-dozens of the names of Fortran wrapper functions. In this case, 
-the Fortran compiler select a specific name for the type and the number of 
-dimensions and converts the name to ``{\tt xmpf\_coarray\_get2d\_z16}'',
-where ``{\tt 2d}'' and ``{\tt z16}'' means two-dimensional and 
-16-byte complex type, respectively.
-%
-The last argument ``{\tt a(1:10,2:19)}'' is a mold expression only to refer
-the communication pattern and the shape of the result value.
-
-For the input above, the Fortran wrapper calls ULR function as follows:
-\begin{verbatim}
- xmpf_coarray_get_array(dp_a,base,16,k,dst,2,skip,extent)
-\end{verbatim}
-where, 
-%
-{\tt base} is the address of {\tt a(1,2)},
-% that is the base address of {\tt a(1:10,2:19)},
-%
-{\tt dst} is the address of the result variable,
-% of 16-byte complex shaped {\tt [} 10, 18 {\tt ]}
-%in Fortran, or, the pointer to 16 $\times$ 10 $\times$ 80-byte memory in C, and
-%
-{\tt skip} and {\tt extent} are integer arrays of length 2 
-to represent the pattern of the communication data.
 
