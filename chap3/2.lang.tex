@@ -1,42 +1,42 @@
-\section{Requirements from Language Specifications}\label{sec:spec}
+﻿\section{Requirements from Language Specifications}\label{sec:spec}
 
-XMP Fortran language specification~\cite{xmp} supports a major part of 
-coarray features defined in Fortran~2008 standard~\cite{coarray}, 
-and intrinsic procedures {\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN} and 
-{\tt CO\_BROADCAST} defined in Fortran~2018 standard~\cite{coarray18} were supported.
-And also XMP C language specification extended to support coarray features.
+The XMP Fortran language specification~\cite{xmp} supports many of 
+the coarray features defined in the Fortran~2008 standard~\cite{coarray}, 
+and intrinsic procedures {\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN}, and 
+{\tt CO\_BROADCAST} defined in the Fortran~2018 standard~\cite{coarray18}are supported.
+In addition, the XMP C language specification was extended to support coarray features.
 
 This section introduces the coarray features and what is required
-to the compiler in order to implement the coarray features.
+of the compiler in order to implement the coarray features.
 
 
 %-----------------------------------------------------------------------------
 \subsection{Images Mapped to XMP Nodes}\label{sec:spec-image}
 %-----------------------------------------------------------------------------
 
-In the Fortran standard, an {\bf image} is defined as a instance of a program. 
-Each image executes the same program and has its own data individually.
+In the Fortran standard, an {\bf image} is defined as an instance of a program. 
+Each image executes the same program and has its own individual data.
 Each image has a different image index $k$.
 While the Fortran standard itself does not specify where each image is executed, 
 XMP specifies that images are mapped to executing nodes on a one-to-one basis.
-Therefore, image $k$ is always executed on executing node $k$, where $1 \leq k \leq n$ and 
-$n$ is the number of images and also the number of the executing nodes. 
+Therefore, image $k$ is always executed on executing node $k$, where $1 \leq k \leq n$, and 
+$n$ is the number of images as well as the number of executing nodes. 
 Since each MPI rank number of {\tt MPI\_COMM\_WORLD} (0-origin) is 
-always mapped to an XMP node number in order, image $k$ is corresponding to 
+always mapped to an XMP node number in order, image $k$ corresponds to 
 rank $(k - 1)$.
 
 Note that the executing nodes can be a subset of the entire (initial) node set. 
 For example, two distinct node sets can execute two coarray subprograms concurrently.
-The first executing images at the start of the program is the entire images.
-Coarray features are compatible to the ones of the Fortran standard unless 
+The first executing images at the start of the program are entire images.
+Coarray features are compatible with those of the Fortran standard, unless 
 the {\tt TASK} and {\tt END TASK} directives are used.
 If the execution encounters a {\tt TASK} directive specified with a subset of nodes, 
-the corresponding subset of the images will be the executing images for the task region. 
-The current number of images and my image number, which are given by inquire functions
-{\tt num\_images} and {\tt this\_image}, also match with the executing images, and
-the {\tt SYNC\_IMAGES} statement synchronizes among the executing images.
+then the corresponding subset of images will be the executing images for the task region. 
+The current number of images and my image number,  which are given by inquire functions
+{\tt num\_images} and {\tt this\_image} also match the executing images, and
+the {\tt SYNC\_IMAGES} statement synchronizes the executing images.
 When the execution encounters the {\tt END TASK} directive corresponding to the
-{\tt TASK} directive, the set of executing image is reinstated.
+{\tt TASK} directive, the set of executing images is reinstated.
 
 %   Coarray features can be used inside the TASK directive blocks. As default,
 %   each coarray image is mapped one-to-one to a node of the current executing 
@@ -52,7 +52,7 @@ When the execution encounters the {\tt END TASK} directive corresponding to the
 
 \requirement
 The runtime library should manage the executing image set and the current image index 
-in stack in order to reinstate them at the exit point of the task.
+in a stack in order to reinstate them at the exit point of the task.
 
 
 %-----------------------------------------------------------------------------
@@ -60,11 +60,11 @@ in stack in order to reinstate them at the exit point of the task.
 %-----------------------------------------------------------------------------
 
 A {\bf coarray} or a coarray variable is a variable that can be referred from the other images. 
-A coarray with the {\tt ALLOCATABLE} attribute is called an {\bf allocatable coarray}, 
+A coarray with the {\tt ALLOCATABLE} attribute is called an {\bf allocatable coarray}, and is
 otherwise called a non-allocatable coarray. A non-allocatable coarray may not be a pointer 
 and must have an explicit shape and the {\tt SAVE} attribute. In order to help 
-intuitive understanding, we call a non-allocatable coarray as a {\bf static coarray}. 
-The lifetime of a static coarray is throughout execution of the program on all images even if
+intuitive understanding, we refer to a non-allocatable coarray a {\bf static coarray}. 
+The lifetime of a static coarray is throughout execution of the program on all images, even if
 the coarray is declared in a procedure called with a subset of images.
 
 On the other hand, an allocatable coarray is allocated with the {\tt ALLOCATE} statement and 
@@ -77,8 +77,8 @@ Static coarrays can be declared as scalar or array variables as follows:
       type(user_defined_type), save :: s[2,2,*]
 \end{verbatim}
 
-The square bracket notation in the declaration distinguishes coarray variables from 
-the others (non-coarrays). It declares the virtual shape of the images and the last 
+The square brackets in the declaration distinguish coarray variables from 
+other (non-coarray) variables. The declaration declares the virtual shape of the images, and the last 
 dimension must be deferred (as `{\tt *}').
 
 Allocatable coarrays can be declared as follows:
@@ -89,25 +89,23 @@ Allocatable coarrays can be declared as follows:
 
 
 A notable constraint is that at any synchronization point in program execution, 
-coarrays must have the same dimensions (sizes of all axes) between all images
+coarrays must have the same dimensions (sizes of all axes) for all images
 ({\bf symmetric memory allocation}). 
-Therefore, an static coarray must have the same shape between all images during 
-the program execution, and an allocatable coarray must be allocated and deallocated 
-collectively at the same time with the same dimensions between the executing images.
-Thanks to the syn-metric memory allocation rule, all executing images can have
+Therefore, a static coarray must have the same shape for all images during 
+program execution, and an allocatable coarray must be allocated and deallocated 
+collectively at the same time with the same dimensions for the executing images.
+Thanks to the symmetric memory allocation rule, all executing images can have
 the same symmetrical memory layout, which makes it possible to calculate the address 
 of the remote coarray with no prior inter-image communication.
 
 \requirement
 Static coarrays must be allocated and made accessible remotely
-before the execution of the user program, and 
-made inaccessible remotely and be freed after the execution of the user program.
-In contrast, 
-allocatable coarrays must be allocated and made accessible remotely
-when the {\tt ALLOCATE} statement is encountered, and 
-made inaccessible remotely and be freed when the {\tt DEALLOCATE} statement or 
-the exit point of the scope that the corresponding {\tt ALLOCATE} statement is encountered 
-is encountered.
+before execution of the user program and 
+made inaccessible remotely and be freed after execution of the user program.
+In contrast, allocatable coarrays must be allocated and made accessible remotely
+when the {\tt ALLOCATE} statement is encountered and 
+made inaccessible remotely and freed when the {\tt DEALLOCATE} statement is encountered or 
+the exit point of the scope to which the corresponding {\tt ALLOCATE} statement is encountered.
 
 
 %-----------------------------------------------------------------------------
@@ -117,12 +115,12 @@ is encountered.
 Coarray features in XMP include three types of communications between images, i.e.,
 reference and definition to remote coarrays,
 collective communications (intrinsic subroutines {\tt CO\_SUM}, {\tt CO\_MAX}, 
-{\tt CO\_MIN} and {\tt CO\_BROADCAST}), and
+{\tt CO\_MIN}, and {\tt CO\_BROADCAST}), and
 atomic operations ({\tt ATOMIC\_DEFINE} and {\tt ATOMIC\_REF}).
 %
-Collective communications and atomic operations are similar to the ones 
+Collective communications and atomic operations are similar to those
 in MPI library.
-Communication for reference and definition to remote coarrays are 
+Communications for reference and definition to remote coarrays are 
 characteristic for coarray features.
 
 
@@ -132,12 +130,12 @@ as the left-hand side expression, e.g.,
 \begin{verbatim}
       a(i,j)[k] = alpha * b(i,j) + c(i,j)
 \end{verbatim}
-This statement is to cause the PUT communication to the array element {\tt a(i,j)}
+This statement causes the PUT communication to the array element {\tt a(i,j)}
 on image {\tt k} with the value of the left-hand side.
 %
-Using Fortran array assignment statement, array-to-array PUT communication 
-can be written easily. E.g., the following statement causes 
-{\tt M}$\times${\tt N}-element PUT communication.
+Using the Fortran array assignment statement, array-to-array PUT communication 
+can be written easily, e.g., the following statement causes 
+{\tt M}$\times${\tt N}-element PUT communication:
 \begin{verbatim}
       a(1:M,1:N)[k] = alpha * b(1:M,1:N) + c(1:M,1:N)
 \end{verbatim}
@@ -148,18 +146,17 @@ which is represented by a coarray variable with cosubscripts enclosed by square 
 e.g., {\tt s[1,2]} and {\tt a(i,j)[k]}, where {\tt s} and {\tt a} are scalar and 
 two-dimensional array coarrays, respectively.
 %
-A coindexed object can appear almost in any expressions including array expressions.
+A coindexed object can appear in almost any expression, including array expressions.
 
 \requirement
-To implement definition/reference to coindexed variable/object,
-PUT/GET one-sided communication is suitable to be used.
+In order to implement definition/reference to a coindexed variable/object,
+PUT/GET one-sided communication is suitable for use.
 %
-To avoid costly processing such as remote procedure call, 
-RDMA (Remote Direct Memory Access)-based implementation is desirable.
+In order to avoid costly processing, such as a remote procedure call, 
+remote direct memory access-based (RDMA-based) implementation is desirable.
 %
-On PUT/GET communication for large data, redundant multiple memory copies 
-should carefully be avoided for all software layers, 
-the communication library, the runtime, the Fortran library, and the object.
+In PUT/GET communication for large data, redundant multiple memory copies 
+should carefully be avoided for all software layers, the communication library, the runtime, the Fortran library, and the object.
 
 % A reference of coindexed object is basically converted to a runtime library call
 % to get the result of GET communication. 
@@ -180,20 +177,18 @@ the communication library, the runtime, the Fortran library, and the object.
 The access order of coarrays between images is explicitly controlled by the 
 programmer using the {\bf image control statement}, 
 such as {\tt SYNC ALL} and {\tt SYNC IMAGES} statements. 
-It allows the compiler system to make PUT/GET communication asynchronous.
-The sequence of execution between the image control statements is called 
-as a {\bf segment}.
+The statement allows the compiler system to make PUT/GET communication asynchronous.
+The sequence of execution between the image control statements is called as a {\bf segment}.
 An asynchronous communication must be completed by the end of the segment.
 
 %-- inside image
-While, inside each image, the compiler must maintain data dependency 
-as before even if it contains coarray communications.
-It suppress the {\bf non-blocking communication},
+Inside each image, the compiler must maintain data dependency 
+as before, even if the compiler contains coarray communications.
+The compiler suppresses the {\bf non-blocking communication},
 which postpones waiting for communication completion.
 In order to keep data dependency among the definitions and references to the same 
-coarray in the same segment, the non-blocking communication should be restricted.
-The example bellow in which the same remote coarray is accessed some times 
-inside the same segment.
+coarray in the same segment, non-blocking communication should be restricted.
+The example below in which the same remote coarray is accessed a number of times inside the same segment.
 \begin{quote}
 \begin{verbatim}
  1      if (this_image()==1) then
@@ -204,45 +199,45 @@ inside the same segment.
  6      endif
 \end{verbatim}
 \end{quote}
-Between lines 2 and 3, the completion wait for PUT communication is necessary
+Between lines 2 and 3, the completion wait for PUT communication is necessary in order
 to avoid referencing data that is not defined completely.
 Similarly, between lines 3 and 4, the completion wait for GET communication is 
-necessary to avoid referencing data that is getting updated.
+necessary in order to avoid referencing data that is being updated.
 However, between lines 4 and 5, the completion wait is not necessary.
-The issue of race condition on image 2 cannot be avoid by the completion wait
-on image 1 in general and avoiding it is the matter of the programmer.
+The issue of race condition on image 2 cannot be avoided by the completion wait
+on image 1 in general, and avoiding this issue is up to the programmer.
 
 \requirement
 %To reduce the latency overhead, non-blocking one-sided communication is effective.
 %The compiler should generate non-blocking GET communication as long as possible.
 Unless the same remote data is accessed from the same segment, 
-completion of non-blocking completion is can be delayed until the end of the segment.
+non-blocking completion can be delayed until the end of the segment.
 %However, the possibility to meet the condition above should 
 %be took account. 
-Because the data received by the GET communication is usually referenced soon, 
-non-blocking GET communication is hard to be used. So if GET communication is
-always on blocking, only the flow dependency (between lines 2 and 3) should be care of.
+Since the data received by the GET communication is usually referenced soon, 
+non-blocking GET communication is hard to use. Therefore, if GET communication is
+always on blocking, then only the flow dependency (between lines 2 and 3) should be considered.
 
 
 %-----------------------------------------------------------------------------
 \subsection{Subarrays and Data Contiguity}\label{sec:spec-contig}
 %-----------------------------------------------------------------------------
 
-Except dummy argument, an array is fully {\bf contiguous} across the dimensions.
+Except for a dummy argument, an array is fully {\bf contiguous} across the dimensions.
 A subarray of the array can be fully or partially contiguous or non-contiguous.
 For example, if an array is declared with the shape {\tt a(1:M,1:N)},
-the whole array (referenced as {\tt a} or {\tt a(:,:)} or {a(1:M,1:N)})
+then the whole array (referenced as {\tt a} or {\tt a(:,:)} or {a(1:M,1:N)})
 is fully contiguous and a subarray {\tt a(2:5,3)} is partially contiguous.
-We defined a term {\bf contiguous length} as the length how long the data is partially
+We defined a term {\bf contiguous length} as the length for which the data is partially
 contiguous. For example, the contiguous lengths of {\tt a(2,3)} and {\tt a(2:5,3)} are
-1 and 4 respectively.  {\tt a(1:M,1:3)} is two-dimensionally contiguous and has 
+1 and 4, respectively. {\tt a(1:M,1:3)} is two-dimensionally contiguous and has 
 contiguous length $2 \times {\tt M}$.
-{\tt a(1:M-1,1:3)} is one-dimensionally contiguous and has 
+{\tt a(1:M-1,1:3)} is one-dimensionally contiguous and has a 
 contiguous length $({\tt M} - 1)$.
 
 \requirement
 For high-performance communication, it is important to find the contiguous length
-across the dimensions. Because, thousands of bytes of contiguous data is needed to be 
+across the dimensions, because thousands of bytes of contiguous data is needed in order to be 
 comparable to the communication latency in general, and only the first dimension 
 of the array is not always long enough.
 %
@@ -257,13 +252,13 @@ of the array is not always long enough.
 \subsection{Coarray C Language Specifications}\label{sec:spec-c}
 %-----------------------------------------------------------------------------
 
-XMP language specification extends C language to support coarray 
-features. Array notations such as subarray and array assignment statement
-is adopted into C language.
+The XMP language specification extends the C language to support coarray 
+features. Array notations, such as subarray and array assignment statements,
+are adopted in the C language.
 %
 In XMP/C, a coarray is a data object but is not a pointer.
-A coarray is either 1) of basic type, 2) a structure whose
-any component is not a pointer, or 3) an array of 1 or 2 or 3.
+A coarray is either 1) of basic type, 2) a structure in which
+no component is a pointer, or 3) an array of 1, 2, or 3.
 
 XMP/C also has static and allocatable coarrays.
 Coarray variables declared directly in the file and declared with 
@@ -277,5 +272,8 @@ Coarray variables can be allocated with intrinsic functions.
 % Coarray C++とは違うアプローチである。
 
 % cf.\ air:/Users/iwashita/Desktop/coarray/Project\_Coarray/の下にいくつか
+
+
+
 
 
