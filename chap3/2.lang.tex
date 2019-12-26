@@ -1,9 +1,9 @@
-﻿\section{Requirements from Language Specifications}\label{sec:spec}
+\section{Requirements from Language Specifications}\label{sec:spec}
 
 The XMP Fortran language specification~\cite{xmp} supports many of 
 the coarray features defined in the Fortran~2008 standard~\cite{coarray}, 
 and intrinsic procedures {\tt CO\_SUM}, {\tt CO\_MAX}, {\tt CO\_MIN}, and 
-{\tt CO\_BROADCAST} defined in the Fortran~2018 standard~\cite{coarray18}are supported.
+{\tt CO\_BROADCAST} defined in the Fortran~2018 standard~\cite{coarray18} are supported.
 In addition, the XMP C language specification was extended to support coarray features.
 
 This section introduces the coarray features and what is required
@@ -32,7 +32,7 @@ Coarray features are compatible with those of the Fortran standard, unless
 the {\tt TASK} and {\tt END TASK} directives are used.
 If the execution encounters a {\tt TASK} directive specified with a subset of nodes, 
 then the corresponding subset of images will be the executing images for the task region. 
-The current number of images and my image number,  which are given by inquire functions
+The current number of images and my image number, which are given by inquire functions
 {\tt num\_images} and {\tt this\_image} also match the executing images, and
 the {\tt SYNC\_IMAGES} statement synchronizes the executing images.
 When the execution encounters the {\tt END TASK} directive corresponding to the
@@ -78,8 +78,8 @@ Static coarrays can be declared as scalar or array variables as follows:
 \end{verbatim}
 
 The square brackets in the declaration distinguish coarray variables from 
-other (non-coarray) variables. The declaration declares the virtual shape of the images, and the last 
-dimension must be deferred (as `{\tt *}').
+other (non-coarray) variables. The declaration declares the virtual shape of the images, 
+and the last dimension must be deferred (as `{\tt *}').
 
 Allocatable coarrays can be declared as follows:
 \begin{verbatim}
@@ -156,7 +156,8 @@ In order to avoid costly processing, such as a remote procedure call,
 remote direct memory access-based (RDMA-based) implementation is desirable.
 %
 In PUT/GET communication for large data, redundant multiple memory copies 
-should carefully be avoided for all software layers, the communication library, the runtime, the Fortran library, and the object.
+should carefully be avoided for all software layers, 
+the communication library, the runtime, the Fortran library, and the object.
 
 % A reference of coindexed object is basically converted to a runtime library call
 % to get the result of GET communication. 
@@ -183,12 +184,13 @@ An asynchronous communication must be completed by the end of the segment.
 
 %-- inside image
 Inside each image, the compiler must maintain data dependency 
-as before, even if the compiler contains coarray communications.
-The compiler suppresses the {\bf non-blocking communication},
+as before, even if the program contains coarray communications.
+The compiler must suppress the {\bf non-blocking communication},
 which postpones waiting for communication completion.
 In order to keep data dependency among the definitions and references to the same 
 coarray in the same segment, non-blocking communication should be restricted.
-The example below in which the same remote coarray is accessed a number of times inside the same segment.
+The example below in which the same remote coarray is accessed a number of times 
+inside the same segment.
 \begin{quote}
 \begin{verbatim}
  1      if (this_image()==1) then
@@ -272,8 +274,4 @@ Coarray variables can be allocated with intrinsic functions.
 % Coarray C++とは違うアプローチである。
 
 % cf.\ air:/Users/iwashita/Desktop/coarray/Project\_Coarray/の下にいくつか
-
-
-
-
 

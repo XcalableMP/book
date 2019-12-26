@@ -1,15 +1,16 @@
-﻿\section{Introduction}\label{chap:intro}
+\section{Introduction}\label{chap:intro}
 
 \pagenumbering{arabic}
 \setcounter{page}{1}
 
-XcalableMP (XMP)~\cite{xmp} has complementary global-view and local-view programming models. The former is a directive-based language 
+XcalableMP (XMP)~\cite{xmp} has complementary global-view and local-view 
+programming models. The former is a directive-based language 
 extension to the base languages Fortran and C, and the latter adopts 
 the coarray features defined in Fortran 2008~\cite{coarray} and 
 a part of the coarray features defined in Fortran 2018~\cite{coarray18}. 
 %
 The purpose of the coarray features as the local-view part of XMP is 
-1) writing application programs, which is difficult for global-view programming
+1) writing such application programs that are not suitable for the global-view programming
 and 2) writing important parts of programs that are critical to performance
 with an easier programming model than MPI message passing.
 Therefore, the coarray features in XMP must be naturally merged into the 
@@ -17,11 +18,13 @@ global-view XMP language and must exhibit high performance, comparable to that o
 
 The Omni XMP compiler is an open-source implementation developed at RIKEN 
 and the University of Tsukuba~\cite{omni}. 
-The kernel of the Omni XMP compiler is a source-to-source compiler that converts an XMP program into a Fortran program by calling a runtime library.
+The kernel of the Omni XMP compiler is a source-to-source compiler that 
+converts an XMP program into a Fortran program by calling a runtime library.
 %
 The coarray translator has been implemented on the Omni XMP compiler.
 Since the images are mapped one-to-one to XMP nodes, 
-each image was implemented as a process, and the definition and reference to coarrays were implemented as inter-node one-sided communications.
+each image was implemented as a process, and the definition and reference 
+to coarrays were implemented as inter-node one-sided communications.
 
 This chapter describes the techniques used in the coarray compiler and 
 the runtime library, and a comparison to MPI message passing.
@@ -30,8 +33,4 @@ Section 2 introduces the requirements of the coarray features.
 Section 3 describes the implementation used to solve the requirements, and
 Section 4 evaluates the performance and productivity of coarray programs.
 Related research is described in Section 5, and Section 6 concludes this chapter.
-
-
-
-
 
