@@ -25,7 +25,7 @@ The target of {\XACC} is an accelerated cluster,
 a hardware model of which is shown in Fig. \ref{fig:hardware}.
 
 \begin{myfigure}
-  \includegraphics[scale=0.9,clip]{figs/hardware.eps}
+  \includegraphics[width=\textwidth]{figs/hardware.eps}
   \caption{Hardware Model}\label{fig:hardware}
 \end{myfigure}
 
@@ -54,7 +54,7 @@ In a program using the {\XMP} extensions,
 Fig. \ref{fig:concept} shows a concept of the {\XMP} extensions.
 
 \begin{myfigure}
-\includegraphics[scale=0.5,clip]{figs/concept.eps}
+\includegraphics[width=\textwidth]{figs/concept.eps}
   \caption{Concept of {\XMP} Extensions}\label{fig:concept}
 \end{myfigure}
 
@@ -85,7 +85,7 @@ The {\OACC} extension can represent offloading works and data to multiple-accele
 Fig. \ref{fig:concept_acc_ex} shows a concept of the {\OACC} extension.
 
 \begin{myfigure}
-\includegraphics[scale=0.5,clip]{figs/concept_acc_ext.pdf}
+\includegraphics[width=\textwidth]{figs/concept_acc_ext.pdf}
   \caption{Concept of {\OACC} Extension}\label{fig:concept_acc_ex}
 \end{myfigure}
 
@@ -144,48 +144,48 @@ Particularly in {\XACCF},
 for common blocks that include any global variables, 
 the ways how the storage sequence of them is defined and how the storage association of them is resolved are implementation-dependent.
 
-\subsection{Directive Format}
-This section describes the syntax and behavior of {\XMP} and {\OACC} directives in {\XACC}.
-In this document, 
-the following notation is used to describe the directives.
+% \subsection{Directive Format}
+% This section describes the syntax and behavior of {\XMP} and {\OACC} directives in {\XACC}.
+% In this document, 
+% the following notation is used to describe the directives.
 
-\vspace{0.5cm}%
-\begin{tabular}{ll}
-{\tt xxx} & {\tt type-face} characters are used to indicate literal type characters. \\
-{\it xxx...} & If the line is followed by ``...'', then xxx can be repeated. \\
-{\it [xxx]} & {\it xxx} is optional. \\
-{\bsquare} & The syntax rule continues. \\
-\verb![F]! & The following lines are effective only in {\XACCF}. \\
-\verb![C]! & The following lines are effective only in {\XACCC}. \\
-\end{tabular}
-\vspace{0.5cm}%
+% \vspace{0.5cm}%
+% \begin{tabular}{ll}
+% {\tt xxx} & {\tt type-face} characters are used to indicate literal type characters. \\
+% {\it xxx...} & If the line is followed by ``...'', then xxx can be repeated. \\
+% {\it [xxx]} & {\it xxx} is optional. \\
+% {\bsquare} & The syntax rule continues. \\
+% \verb![F]! & The following lines are effective only in {\XACCF}. \\
+% \verb![C]! & The following lines are effective only in {\XACCC}. \\
+% \end{tabular}
+% \vspace{0.5cm}%
 
-In {\XACCF}, 
-{\XMP} and {\OACC} directives are specified using special comments that are identified by unique sentinels {\tt\verb|!$xmp|} and {\tt\verb|!$acc|} respectively.
-the directives follow the rules for comment lines of either the Fortran free or fixed source form,
-depending on the source form of the surrounding program unit\footnote{Consequently, the rules of comment lines that an
-{\XMP} directive follows is the same as the ones that an {\OMP} directive follows.}.
-The directives are case-insensitive.
+% In {\XACCF}, 
+% {\XMP} and {\OACC} directives are specified using special comments that are identified by unique sentinels {\tt\verb|!$xmp|} and {\tt\verb|!$acc|} respectively.
+% the directives follow the rules for comment lines of either the Fortran free or fixed source form,
+% depending on the source form of the surrounding program unit\footnote{Consequently, the rules of comment lines that an
+% {\XMP} directive follows is the same as the ones that an {\OMP} directive follows.}.
+% The directives are case-insensitive.
 
-\vspace{0.5cm}
-\Syntax{directive}
-\begin{tabular}{ll}
-\verb![F]! & \verb|!$xmp| {\it directive-name clause} \\
-\verb![F]! & \verb|!$acc| {\it directive-name clause} \\
-\end{tabular}
-\vspace{0.5cm}
+% \vspace{0.5cm}
+% \Syntax{directive}
+% \begin{tabular}{ll}
+% \verb![F]! & \verb|!$xmp| {\it directive-name clause} \\
+% \verb![F]! & \verb|!$acc| {\it directive-name clause} \\
+% \end{tabular}
+% \vspace{0.5cm}
 
-In {\XACC}, 
-{\XMP} and {\OACC} directives are specified using the \verb|#pragma| mechanism provided by the C standards.
-the directives are case-sensitive.
+% In {\XACC}, 
+% {\XMP} and {\OACC} directives are specified using the \verb|#pragma| mechanism provided by the C standards.
+% the directives are case-sensitive.
 
-\vspace{0.5cm}
-\Syntax{directive}
-\begin{tabular}{ll}
-\verb![C]! & \verb|#pragma xmp| {\it directive-name clause} \\
-\verb![C]! & \verb|#pragma acc| {\it directive-name clause} \\
-\end{tabular}
-\vspace{0.5cm}
+% \vspace{0.5cm}
+% \Syntax{directive}
+% \begin{tabular}{ll}
+% \verb![C]! & \verb|#pragma xmp| {\it directive-name clause} \\
+% \verb![C]! & \verb|#pragma acc| {\it directive-name clause} \\
+% \end{tabular}
+% \vspace{0.5cm}
 
 %Directives are classified as {\bf declarative directives} and {\bf executable directives}\cite{xmp}.
 %
@@ -219,10 +219,10 @@ the directives are case-sensitive.
 %\end{tabular}
 %\vspace{0.5cm}
 
-\subsection{Organization of This Document}
-The remainder of this document is structured as follows:
+% \subsection{Organization of This Document}
+% The remainder of this document is structured as follows:
 
-\begin{itemize}
- \item Chapter 2: {\XMP} Extensions
- \item Chapter 3: {\OACC} Extensions
-\end{itemize}
+% \begin{itemize}
+%  \item Chapter 2: {\XMP} Extensions
+%  \item Chapter 3: {\OACC} Extensions
+% \end{itemize}
