@@ -1,26 +1,24 @@
-\section{Evaluation}\label{sec:eval}
+﻿\section{Evaluation}\label{sec:eval}
 
-We evaluated the Omni XMP coarray compiler on the environments shown in \tab{specs}.
+We evaluated the Omni XMP coarray compiler in the environments shown in \tab{specs}.
 
 \begin{table}[bth]
- \caption{Specs of the computers and evaluation environment}\label{tab:specs}
+ \caption{Specifications of the computers and evaluation environment}\label{tab:specs}
  \begin{center}\small
   \input{tabs/specs.tex}
  \end{center}
 \end{table}
-
 
 %-----------------------------------------------------------------------------
 \subsection{Fundamental Performance}
 %-----------------------------------------------------------------------------
 
 %===========================================================
-%\subsubsection{EPCC Fortran Coarray micro-benchmark}
+%\subsubsection{EPCC Fortran Coarray Micro-benchmark}
 %===========================================================
 
-Using EPCC Fortran Coarray micro-benchmark~\cite{EPCC}, we evaluated ping-pong performance 
-of PUT and GET communications compared with MPI\_Send/Recv.
-The codes are shortly shown in \tab{pingpong-code}.
+Using the EPCC Fortran Coarray micro-benchmark~\cite{EPCC}, we evaluated the ping-pong performance of PUT and GET communications compared with MPI\_Send/Recv.
+The codes are briefly shown in \tab{pingpong-code}.
 
 %-- pingpong-code.pdf
 \begin{table}[bht]
@@ -29,15 +27,14 @@ The codes are shortly shown in \tab{pingpong-code}.
     % trimはleft bottom right topの順
     \mbox{\includegraphics[trim=24mm 211mm 24mm 16mm, scale=0.7,clip]{figs/pingpong-code-r2.pdf}}
     \begin{flushright}
-      {\tt me} is the image index. {\tt id} is the MPI rank number.
+      {\tt me} is the image index, {\tt id} is the MPI rank number.
     \end{flushright}
   \end{center}
 \end{table}
-
 %-- pingpong-fig.pdf
 \begin{figure}[bht]
   \begin{center}
-    \mbox{\includegraphics[trim=30mm 195mm 32mm 16mm, scale=0.75,clip]{figs/pingpong-fig-r2.pdf}}
+    \mbox{\includegraphics[trim=30mm 195mm 32mm 16mm, scale=0.75,clip]{figs/pingpong-fig-r2.pdf}} 
     \caption{pingpong-fig.pdf}\label{fig:pingpong-fig}
   \end{center}
 \end{figure}
@@ -45,16 +42,16 @@ The codes are shortly shown in \tab{pingpong-code}.
 Corresponding to the codes in \tab{pingpong-code}, \fig{pingpong-fig} shows how data and 
 messages are exchanged between two images or processes.
 In coarray PUT (a) and GET (b), inter-image synchronization is necessary for each end of 
-phases to make the passive image active and to make the active image passive.
-While, in MPI message-passing (c) and (d), such synchronization is not necessary because
+the phases to make the passive image active and to make the active image passive.
+Whereas, in MPI message-passing (c) and (d), such synchronization is not necessary because
 both processes are always active.
 %
-On the other hand, MPI message-passing has its own overhead that coarray PUT/GET
-does not have. Because the eager protocol (c) does not use RDMA, the receiver
+On the other hand, MPI message passing has its own overhead that coarray PUT/GET
+does not have. Since the eager protocol (c) does not use RDMA, the receiver
 must copy the received data in the local buffer to the target. The larger the data,
 the greater the overhead cost.
-In the rendezvous protocol (d), negotiations including remote address notification
-are required prior to the communication.
+In the rendezvous protocol (d), negotiations, including remote address notification,
+are required prior to communication.
 The overhead cost is not negligible when the data is small.
 
 
@@ -70,16 +67,15 @@ The overhead cost is not negligible when the data is small.
     \caption{Ping-pong performance on Fujitsu PRIMEHPC FX100 and HA-PACS/TCA}\label{fig:8graphs}
   \end{center}
 \end{figure}
-
 The result of the comparison between coarray PUT/GET and MPI message passing is shown in
 \fig{8graphs}.
 As the underlying communication libraries, 
-FJ-RDMA and MPI-3 are used on FX100 and GASNet and MPI-3 are used on HA-PACS.
-GET(a) and GET(b) are using the code without and with the optimization described in
+FJ-RDMA and MPI-3 are used on FX100 and GASNet and MPI-3 is used on HA-PACS.
+GET (a) and GET (b) use the code without and with the optimization described in
 \Sec{opt-get}, respectively.
 Bandwidth is the communication data size per elapsed time, and
 latency is half of the ping-pong elapsed time.
-The difference between GET(a) and (b) is the compile-time optimization level of the 
+The difference between GET (a) and GET (b) is the compile-time optimization level of the 
 coarray translator described in \Sec{opt-get}.
 
 
@@ -87,49 +83,47 @@ coarray translator described in \Sec{opt-get}.
 %\subsubsection{Result of ping-pong benchmark}
 %===========================================================
 
-As the result, the following was found about coarray PUT/GET communication.
+The following was found regarding coarray PUT/GET communication.
 
 \begin{description}
 
 \item [Bandwidth]
-Coarray PUT and GET are slightly outperforms MPI rendezvous communication for large data 
+Coarray PUT and GET slightly outperforms MPI rendezvous communication for large data 
 on FJ-RDMA and MPI-3.
-On FJ-RDMA/FX100 (a), the bandwidth of PUT and GET(b) are respectively 
+On FJ-RDMA/FX100 (a), the bandwidths of PUT and GET (b) are, respectively, 
 +0.1\% to +18\% and -0.4\% to +9.3\% higher than MPI rendezvous in the 
 rendezvous range of 32k through 32M bytes.
-Also on MPI-3/HA-PACS, respectively +0.3\% to +0.8\% and 
+In addition, on MPI-3 and/or HA-PACS, the bandwidths of PUT and GET are, respectively, +0.3\% to +0.8\% and 
 +0.1\% to +1.3\% higher in the rendezvous range of 512k through 32M bytes.
+Based on the runtime log, zero-copy communication was confirmed to have been performed
+both in PUT and GET (b) by selecting the DMA scheme described in \Sec{opt-dma}.
 
-It was confirmed from the runtime log that zero-copy communication was performed
-both in PUT and GET(b) by selecting DMA scheme described in \Sec{opt-dma}.
-
-However, on GASNet/HA-PACS (c), PUT and GET(b) has only about 60\% bandwidth for large data
-than MPI rendezvous.
+However, on GASNet/HA-PACS (c), PUT and GET (b) were only approximately 60\% of the bandwidth of MPI rendezvous for a large amount of data.
 It is presumed that data copy was caused internally.
 
 \item [Latency]
-On FJ-RDMA (a) and MPI-3 (b) and (d), PUT and GET(b) have larger (worse) latency than 
-MPI eager communication, in the range of $\leq$16kB on FX100 and $\leq$256kB on HA-PACS.
+On FJ-RDMA (a) and MPI-3 (b) and (d), PUT and GET (b) have larger (worse) latency than 
+MPI eager communication in the range of $\leq$16kB on FX100 and $\leq$256kB on HA-PACS.
 
-Coarray on GASNet (c) behaves differently than other cases on (a), (b) and (d).
-Though the latency is larger than the one of MPI for all data sizes, the difference
-is smaller than the other cases. At data size 8B, the latency of PUT is 2.93$\mu$s
+Coarray on GASNet (c) behaves differently than other cases on (a), (b), and (d).
+Although the latency is larger than that for MPI for all data sizes, the difference
+is smaller than in the other cases. At a data size of 8B, the latency of PUT is 2.93 $\mu$s
 and 2.1 times larger than the one of MPI 
-while 5.73$\mu$s and 3.7 times larger on the case of MPI-3 (d).
+while 5.73$\mu$s and 3.7 times larger for the case of MPI-3 (d).
 
 \item [Effect of GET optimization]
-For all ranges of all cases, GET(a) has smaller bandwidth and larger latency than GET(b).
+For all ranges in all cases, GET (a) has a smaller bandwidth and a larger latency than GET (b).
 On FJ-RDMA (a), the bandwidth is 1.41 to 1.85 times improved in the range of 32kB to 32MB
-by changing the object code of GET(a) to (b).
-We found GET(a) caused two extra memory copies; one is performing the array assignment 
-by the Fortran library and the other is the copy from the communication buffer 
+by changing the object code of GET (a) to GET (b).
+We found GET (a) caused two extra memory copies. One copy performs the array assignment 
+by the Fortran library, and the other copy is from the communication buffer 
 to the result variable of the array function {\tt xmpf\_coarray\_get\_generic}. 
-The optimization described in \Sec{opt-get} has eliminated these two data copies.
+The optimization described in \Sec{opt-get} eliminated these two data copies.
 
 \end{description}
 
-The issue is the large latency of coarray PUT/GET communication.
-In the next subsection, it is discussed how it should be solved 
+The large latency of coarray PUT/GET communication is problematic.
+In the next subsection, we discuss how this problem should be solved 
 by the compiler and the programming.
 
 
@@ -138,7 +132,7 @@ by the compiler and the programming.
 %-----------------------------------------------------------------------------
 
 For latency hiding, asynchronous and non-blocking features can be expected 
-on coarray PUT communication.
+in coarray PUT communication.
 The principle is shown in \fig{nonblock-fig}.
 
 %-- nonblock-fig.pdf
@@ -150,62 +144,61 @@ The principle is shown in \fig{nonblock-fig}.
   \end{center}
 \end{figure}
 
-\fig{nonblock-fig} (a) illustrates the half pattern of the ping-pong PUT communication.
-Coarray one-sided communication is basically asynchronous unless 
+\fig{nonblock-fig}(a) shows the half pattern of the ping-pong PUT communication.
+Coarray one-sided communication is basically asynchronous, unless 
 synchronization is explicitly specified. Therefore, multiple communications
-without synchronization between them, as shown in (b), is closer to actual applications.
-In addition, it can be optimized using non-blocking communication as shown in (c).
+without synchronization, as shown in (b), are closer to actual applications.
+In addition, coarray one-sided communication can be optimized using non-blocking communication, as shown in (c).
 Blocking and non-blocking communications can be switched with the runtime environment
 variable in the current implementation of the Omni compiler.
 In MPI message passing, non-blocking communication can be written with 
-{\tt MPI\_Isend}, {\tt MPI\_Irecv} and {\tt MPI\_Wait}.
+{\tt MPI\_Isend}, {\tt MPI\_Irecv}, and {\tt MPI\_Wait}.
 
 
 \fig{8var-pingpong} compares blocking/non-blocking coarray PUT and 
 MPI message passing communications.
-Two original graphs are the same as the ones of \fig{8graphs} (a).
-Other four graphs display the result of 8-variable ping-pong program, 
-which repeats the ping phase sending eight individual variables 
-from one to the other in order and the pong phase doing similarly 
+The two original graphs are the same as those of \fig{8graphs}(a).
+Four other graphs display the results of the eight-variable ping-pong program, 
+which repeats the ping phase, sending eight individual variables 
+from one  to the other in order, and, similarly, the pong phase
 in the opposite direction.
-Each block size indicates the size of variables and latency includes the
+Each block size indicates the size of variables, and latency includes the
 time for eight variables.
 
 The following was found from the results:
 \begin{itemize}
 \item
 Non-blocking PUT significantly improves the latency of PUT communication. 
-It is 4.63 times faster than blocking PUT on average from 8B to 8kB. 
-Compared to the original PUT, it performs 8 times the communication in just 
-2.11 times longer on average from 8B to 8kB.
-Hiding completion wait behind communication (\fig{nonblock-fig} (c))
+From 8B to 8kB, the latency of non-blocking PUT communication is 4.63 times faster on average than blocking PUT. 
+Compared to the original PUT, from 8B to 8kB, it performs communication eight times for a period of time 2.11 times longer, on average.
+Hiding completion wait behind communication (\fig{nonblock-fig}(c))
 greatly improves the performance.
 
 \item
-Reduction of synchronization (\fig{nonblock-fig} (b)) itself does not
+Reduction of synchronization (\fig{nonblock-fig}(b)) itself does not
 improve the performance. Compared to the original blocking PUT, 
-8-variable blocking PUT has 9.5 to 10.1 times larger latency for 8 times
-larger data.
+eight-variable blocking PUT has 9.5 to 10.1 times larger latency for a data set that is eight times
+larger.
 
 \item
-Unless data size exceeds about 8kB, the latency of non-blocking PUT is not
+Unless data size exceeds approximately 8kB, the latency of non-blocking PUT does not
 depend on the amount of data. 
-The graph of non-blocking PUT is very flat within $\pm$4\% over the range 
+The graph of non-blocking PUT is very flat, within $\pm$4\%, over the range 
 from 8B to 4kB.
 
 \item 
-MPI eager communication has no effect with non-blocking for latency hiding.
-Eager protocol including receiver's unbuffering process seems not suitable for
+MPI eager communication has no effect on non-blocking for latency hiding.
+The eager protocol, including the unbuffering process of the receiver, appears not to be suitable for
 non-buffering.
 
 \item 
-Non-blocking coarray PUT outperforms MPI eager message-passing
+Non-blocking coarray PUT outperforms MPI eager message-passing,
 except for very fine grain data.
-Latency of 8-variable non-blocking PUT is  -9\% to 54\% and 18\% to 61\% 
-compared to 8-variable blocking and non-blocking MPI eager, respectively.
-Only at two plots of 8B and 16B, non-blocking PUT is 4\% and 9\% slower 
-than blocking MPI. Otherwise, it is faster than MPI eager, and
-the more block size, the larger difference of the latencies.
+The latency of eight-variable non-blocking PUT is -9\% to 54\% and 18\% to 61\%, as 
+compared to eight-variable blocking and non-blocking MPI eager, respectively.
+At only two plots for 8B and 16B, the non-blocking PUT is 4\% and 9\% slower 
+than the values for blocking MPI. Otherwise, non-blocking PUT is faster than MPI eager, and
+the more block size, the larger difference in the latency.
 
 \end{itemize}
 
@@ -215,7 +208,7 @@ the more block size, the larger difference of the latencies.
     %-- 8var-pipo-latency.pdf
     %\mbox{\includegraphics[trim=20mm 52mm 5mm 65mm,scale=0.45,clip]{graphs/8var-latency.pdf}}
     \mbox{\includegraphics[scale=0.45]{graphs/8var-latency-2.pdf}}
-    \caption{8-variable ping-pong latency on PRIMEHPC FX100}\label{fig:8var-pingpong}
+    \caption{Eight-variable ping-pong latency on PRIMEHPC FX100}\label{fig:8var-pingpong}
    \end{center}
 \end{figure}
     
@@ -237,41 +230,41 @@ the more block size, the larger difference of the latencies.
 \subsection{Application Program}
 %-----------------------------------------------------------------------------
 
-Himeno benchmark is a part of 2D Poisson's equation solver using the Jacobi 
+The Himeno benchmark is a part of the 2D Poisson equation solver using the Jacobi 
 iteration method \cite{himeno}. 
-The MPI version of Himeno benchmark is a strong scaling program distributed 
+The MPI version of the Himeno benchmark is a strong scaling program distributing
 up to three-dimensional nodes. 
 %
 The K computer shown in \tab{specs} was used in this evaluation.
 
 %===========================================================
-\subsubsection{Coarray version of Himeno benchmark}
+\subsubsection{Coarray Version of the Himeno Benchmark}
 %===========================================================
 
-For competition, we prepared the following three versions of Himeno programs.
+For comparison, we prepared the following three versions of Himeno programs.
 
 \begin{description}
 \item [MPI/original]
 The original MPI version of Himeno benchmark was used as a two-dimensionally 
 distributed in the y and z axes. The x axis was automatically SIMD-vectorized 
 by the Fortran compiler.
-The program executes computation and communication parts repetitively.
-The communication part consists of two steps, z-axis direction communication, 
-and then y-axis direction communication, as shown in \fig{himeno-fig} (a).
+The program executes the computation and communication parts repetitively.
+The communication part consists of two steps: z-axis direction communication 
+and y-axis direction communication, as shown in \fig{himeno-fig}(a).
 Each communication is written with non-blocking MPI message passing and
 completion wait at the end of each step.
 
 \item [MPI/non-blocking]
-The 2-step communication was replaced with non-blocking scrambled communication,
-as shown in \fig{himeno-fig} (b).
-With this replacement, the number of communications increases from 4 to 8 
+The two-step communication was replaced by non-blocking scrambled communication,
+as shown in \fig{himeno-fig}(b).
+With this replacement, the number of communications increases from four to eight 
 per node, but all communications become independent and can be non-blocking.
 
 \item [Coarray PUT/non-blocking]
-The communication pattern is the same as the one of MPI/non-blocking.
-The data was declared as a coarray and each communication was written with
+The communication pattern is the same as that of MPI/non-blocking.
+The data was declared as a coarray, and each communication was written with
 a coarray PUT, i.e., an assignment statement with coindexed variable as 
-the left-hand side. Since the right-hand side of the statement is the reference
+the left-hand side. Since the right-hand side of the statement is a reference
 to the same variable as the left-hand side coarray, the PUT communication
 was converted to zero-copy DMA-RDMA communication.
 
@@ -285,10 +278,9 @@ was converted to zero-copy DMA-RDMA communication.
    \\
    (a) Original MPI version & (b) Non-blocking MPI and coarray versions
   \end{tabular}   
- \caption{Two algorithms of stencil communication in Himeno benchmark}\label{fig:himeno-fig}
+ \caption{Two algorithms of stencil communication in the Himeno benchmark}\label{fig:himeno-fig}
  \end{center}
 \end{figure}
-
 
 %===========================================================
 \subsubsection{Measurement Result}
@@ -299,19 +291,18 @@ executed on 1$\times$1, 2$\times$2, 4$\times$4, $\cdots$, 32$\times$32 nodes on 
 K computer. The following results were obtained:
 \begin{itemize}
 \item
-PUT non-blocking was the fastest in 76\% of the measurement points of the graph. 
-On 1024 nodes, it is 1.2\%, 27\% and 42\% faster than MPI original for sizes M, L, 
+PUT non-blocking was the fastest at 76\% of the measurement points of the graph. 
+On 1,024 nodes, PUT non-blocking is 1.2\%, 27\%, and 42\% faster than MPI original for sizes M, L, 
 and XL, respectively.
 
 \item
 As a result of analyzing the contents of elapsed time, it was confirmed that the
-difference of the performance is caused by the difference in communication
-time. As shown in (b) and (c), communication times of PUT non-blocking are
-56\% and 51\% of the ones of MPI blocking on 256 nodes, respectively on L and 
-XL sizes.
+difference in the performance is caused by the difference in communication
+time. As shown in (b) and (c), the communication times of PUT non-blocking are
+56\% and 51\% of those of MPI blocking on 256 nodes on L and XL Himeno sizes, respectively.
 
 \item
-MPI non-blocking is not always faster than MPI original. The effect of 
+MPI non-blocking is not always faster than the MPI original. The effect of 
 non-blocking seems to be limited in MPI.
 
 \end{itemize}
@@ -335,32 +326,28 @@ The following features can be found.
 
 \begin{itemize}
 \item
-PUT blocking requires less characters for programming than others,
+PUT blocking requires fewer characters for programming,
 especially in subroutines {\tt initcomm} and {\tt initmax}.
-The MPI programmer must describe Cartesian 
-to represent neighboring nodes in {\tt initcomm}, and must declare 
-MPI vector types to describe the communication pattern in {\tt initmax}.
-In contrast, the coarray programmer easily represent 
+The MPI programmer must describe the Cartesian coordinates to represent neighboring nodes in {\tt initcomm}, and must declare MPI vector types to describe the communication pattern in {\tt initmax}. In contrast, the coarray programmer easily represents 
 neighboring images with coindex notation, e.g., {\tt [i,j-1,k]}, and 
 communication patterns with subarray notations, e.g., {\tt p(1:imax, 1:jmax, 1)}.
 
 \item
-Fortran statement of MPI program tends to be longer than coarray's.
-Because, comparing PUT non-blocking to MPI non-blocking,
+The Fortran statement of the MPI program tends to be longer than that of coarray.
+Since, comparing PUT non-blocking to MPI non-blocking,
 the number of characters is one third while the number of statements is almost the same.
-This means that coarray program is more compact than the MPI program for each
-statement. MPI library functions often require long sequence of arguments.
+This means that the coarray program is more compact than the MPI program for each
+statement. MPI library functions often require long sequences of arguments.
 
 \end{itemize}
 
 
 \begin{table}
- \caption{Comparison of source code scales for Himeno benchmark}\label{tab:himeno-lines}
+ \caption{Source code scales for the Himeno benchmark}\label{tab:himeno-lines}
  \begin{center}
   \input{tabs/himeno-lines.tex}
  \end{center}
 \end{table}
-
 
 %-- fx100-pipo.pdf
 %    \fbox{\includegraphics[trim=4mm 15mm 4mm 3mm, scale=0.9,clip]{figs/fx100-pipo.pdf}}
@@ -378,3 +365,4 @@ statement. MPI library functions often require long sequence of arguments.
 %register-RA-tmp.pdf
 %softstack.pdf
 %translator-tmp.pdf
+

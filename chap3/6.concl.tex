@@ -1,23 +1,23 @@
-\section{Conclusion}\label{sec:concl}
+﻿\section{Conclusion}\label{sec:concl}
 
 This chapter described the coarray features in the context of XMP and 
-characteristic implementation of the coarray translator.
+the characteristic implementation of the coarray translator.
 
-For memory allocation and registration, RS, RA and CA methods were
-implemented corresponding to the communication library GASNet, FJ-RDMA
+For memory allocation and registration, the RS, RA, and CA methods were
+implemented corresponding to the communication library GASNet, FJ-RDMA,
 and MPI-3.
 
 For the coarray PUT and GET communications, DMA and four buffering methods
 were described. The effect of the non-blocking PUT communication was
-analyzed, and the knowledge is used to make the coarray version Himeno benchmark
+analyzed, and the knowledge is used to make the coarray version of the Himeno benchmark
 from the original MPI version.
-The measurement result on 1024 nodes of the K computer, the coarray version 
-is 27\% and 42\% faster than the original MPI version, respectively for sizes
-L and XL.
+The measurement results on 1,024 nodes of the K computer, the coarray version 
+is 27\% and 42\% faster than the original MPI version for Himeno sizes
+L and XL, respectively.
 The effect of the optimization of GET communication was also obvious on 
 the ping-pong benchmark on HA-PACS/TCA and Fujitsu PRIMEHPC FX100.
 
-As an evaluation of productivity, the coarray program uses less than half as
-many characters as MPI message passing program to write the same algorithm
-of Himeno benchmark.
+As an evaluation of productivity, the coarray program uses fewer than half as
+many characters as the MPI message passing program to write the same algorithm
+as the Himeno benchmark.
 

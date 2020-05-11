@@ -195,23 +195,21 @@ Masahiro Nakao \at RIKEN Center for Computational Science,
 \maketitle
 
 \abstract{
-Coarray features has been implemented into the Omni XcalableMP compiler
+Coarray features have been implemented on the Omni XcalableMP compiler
 with a source-to-source translator and layered runtime libraries.
 %
 Three memory allocation methods for coarrays were implemented for
-communication libraries GASNet, MPI-3 and Fujitsu's native interface.
+the GASNet and MPI-3 communication libraries and the native interface of Fujitsu.
 %
 For the coarray PUT/GET communication, algorithms using DMA (zero-copy) 
-and buffering were introduced. The important techniques for achieving 
+and buffering were introduced. Important techniques for achieving 
 high performance were the non-blocking PUT communication implemented 
-in the runtime library and the optimization for the GET communication 
-in the translator.
+in the runtime library and the optimization for the GET communication in the translator.
 %
 Using the ping-pong benchmark and the modified version, the fundamental
-performance was evaluated and analyzed.
-The MPI version of the Himeno benchmark is ported to coarray version
-and modified for fully using the non-blocking PUT. 
-As the result of the evaluation, non-blocking coarray version clearly 
+performance was evaluated and analyzed. The MPI version of the Himeno benchmark was 
+ported to the coarray version and modified for fully using the non-blocking PUT. 
+As a result of the evaluation, the non-blocking coarray version clearly 
 outperformed the original and non-blocking MPI versions.
 }
 
@@ -234,12 +232,12 @@ outperformed the original and non-blocking MPI versions.
 \input{6.concl.tex}
 
 \section*{Acknowledgments}
-                                   
+ 
 The present research used the computational resources of HA-PACS provided by the 
 Interdisciplinary Computational Science Program at the Center for 
 Computational Sciences at the University of Tsukuba. 
 
-Part of the results is obtained by using the K computer at the RIKEN Advanced 
+The results were obtained in part using the K computer at the RIKEN Advanced 
 Institute for Computational Science. %(Proposal number ra000002). 
 
 
@@ -273,13 +271,13 @@ Himeno Benchmark. \url{http://accc.riken.jp/en/supercom/himenobmt/}
 
 \bibitem{Rice} 
 John Mellor-Crummey, Laksono Adhianto, William N. Scherer III, and Guohua Jin. 
-PGAS’09, 3rd Conference on Partitioned Global Address Space Programming Models. 
+PGAS'09, 3rd Conference on Partitioned Global Address Space Programming Models. 
 Ashburn, VA. October, 2009.
 
 \bibitem{HU}
 Deepak Eachempati, Hyoung Joon Jun, and Barbara Chapman. 
 An Open-Source Compiler and Runtime Implementation for Coarray Fortran. 
-PGAS’10, 4th Conference on Partitioned Global Address Space Programming Models, 
+PGAS'10, 4th Conference on Partitioned Global Address Space Programming Models, 
 No.13. 2010.
 
 \bibitem{OpenCo} 
@@ -295,7 +293,7 @@ Conference on Partitioned Global Address Space Programming Models, No. 4. 2014.
 % \bibitem{fj-mpi}
 % Naoyuki Shida, Shinji Sumimoto, and Atsuya Uno. 
 % MPI Library and Low-Level Communication on the K computer, 
-% FUJITSU Scientific \& Technical Journal, Vol.48, No.3, pp.324–330. 2012. 
+% FUJITSU Scientific \& Technical Journal, Vol.48, No.3, pp.324-330. 2012. 
 
 % \bibitem{asia18}
 % Hidetoshi Iwashita, Masahiro Nakao, Hitoshi Murai and Mitsuhisa Sato. 
@@ -320,12 +318,10 @@ Conference on Partitioned Global Address Space Programming Models, No. 4. 2014.
 % Address Space Languages. Ph.D. Thesis, Rice University (Jan. 2007).
 
 %[15]Shiyao Ge, Deepak Eachempati, Dounia Khaldi, and Barbara Chapman. 2015. 
-%An Evaluation of Anticipated Extensions for Fortran Coarrays, PGAS’15, 9th 
+%An Evaluation of Anticipated Extensions for Fortran Coarrays, PGAS'15, 9th 
 %International Conference on Partitioned Global Address Space Programming Models, 
 %P47-58, Washington, D.C. USA (Sep. 2015).
 
 
 \end{document}
-
-
 

@@ -1,34 +1,34 @@
-\section{Related Work}\label{sec:related}
+﻿\section{Related Work}\label{sec:related}
 
 %-- Coarray Imprementations
 The University of Rice has implemented coarray features with their own extension 
 called CAF2.0~\cite{Rice}.
-It is a source-to-source compiler based on the ROSE compiler. GASNet is used as its 
+CAF2.0 is a source-to-source compiler based on the ROSE compiler. GASNet is used as its 
 communication layer.
-Similarly to our RS and RA methods, they use the Cray pointer to pass the data 
-allocated in C into Fortran.
+Similarly to our RS and RA methods, the Cray pointer is used to pass the data 
+allocated in C to Fortran.
 %
-Houston University developed UH-CAF onto the Open64-base OpenUH compiler~\cite{HU}. 
-It supports coarray features defined in the Fortran 2008 standard. As the communication 
+Houston University developed UH-CAF on the Open64-base OpenUH compiler~\cite{HU}. 
+UH-CAF supports the coarray features defined in the Fortran 2008 standard. As the communication 
 layer, GASNet and ARMCI can be used selectively.
 %
-OpenCoarrays is an open-source software project~\cite{OpenCo}. It is an library 
-which can be used with GNU Fortran (gfortran) V5.1 or later. It supports coarray features
-specified in Fortran 2008 and a part of Fortran 2018.  As the communication layer,
+OpenCoarrays is an open-source software project~\cite{OpenCo}. OpenCoarrays is a library 
+that can be used with GNU Fortran (gfortran) V5.1 or later and supports the coarray features
+specified in Fortran 2008 and a part of Fortran 2018. As the communication layer,
 MPICH and GASNet can be used selectively.
 %
-In the vendors, Cray and Intel fully and Fujitsu partially support the coarray features
+In the vendors, Cray and Intel fully support and Fujitsu partially supports the coarray features
 specified in Fortran 2008.
 
-In the latest Fortran standard Fortran~2018, a subset of coarrays is called team.
+In the latest Fortran standard, Fortran~2018, a subset of coarrays is referred to as a team.
 It is similar to the executing images in the term of XMP, but does not affect
 the parallel execution among images.
 
 While non-blocking PUT communication is effective, non-blocking GET communication
 is difficult to put into practical use because the acquired data is used immediately.
-Cray has the directive extension for prefetching remote coarray corresponding to 
+Cray has the directive extension for prefetching a remote coarray corresponding to 
 the GET communication.
 
-Coarray C++ is a coarray implementation into C++. The coarray features are implemented
-with the template library unlike XMP/C based on C language.
+Coarray C++ is a coarray implementation in C++. The coarray features are implemented
+with the template library, unlike XMP/C, which is based on the C language.
 
