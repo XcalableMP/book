@@ -2,7 +2,7 @@
 
 \subsection{Introduction}
 
-The programmer can use coarrays to specify one-sided communication in
+The programmer can use {\coarrays} to specify one-sided communication in
 the local-view model.
 % In XMP, put/get communication and some
 % synchronization functions are supported.
@@ -19,12 +19,12 @@ parallelization, such as data mapping, work mapping, and communication.
 % in XMP/C has its own original syntax since the C language does not support
 % Coarray.
 
-The coarray feature in XMP/Fortran is upward-compatibile with that in
+The {\coarray} feature in XMP/Fortran is upward-compatibile with that in
 Fortran 2008; that in XMP/C is defined as an extension to the base
 language.
 
 An execution entity in local-view XMP programs is referred to as an 
-``image'' while a ``node'' in global-view ones.
+``image'' while a {\node} in global-view ones.
 %
 These two words have almost the same meaning in XMP.
 
@@ -38,23 +38,23 @@ int a[10]:[*];
 integer a(10)[*]
 \end{XFexample}
 
-In XMP/C, the programmer declares a coarray by adding ``\|:[*]|''
+In XMP/C, the programmer declares a {\coarray} by adding ``\|:[*]|''
 after the array declaration. In XMP/Fortran, the programmer declares a
-coarray by adding ``\|[*]|'' after the array declaration.
+{\coarray} by adding ``\|[*]|'' after the array declaration.
 %The asterisk symbol is used in both languages.
 
 \begin{mynote}
-  Based on Fortran 2008, coarrays should have the same size among all
+  Based on Fortran 2008, {\coarrays} should have the same size among all
   images.
 \end{mynote}
 
-Coarrays can be accessed in expressions by remote images as well the
+{\bf Coarrays} can be accessed in expressions by remote images as well the
 local image.
 
 
 \subsection{Put Communication}
 
-When a coarray appears in the left-hand side of an
+When a {\coarray} appears in the left-hand side of an
 assignment statement, it involves {\it put} communication.
 
 \begin{XCexample}
@@ -111,7 +111,7 @@ communication performed in the example.
 
 \subsection{Get Communication}
 
-When a coarray appears in the right-hand side of an assignment
+When a {\coarray} appears in the right-hand side of an assignment
 statement, it involves {\it get} communication.
 
 \begin{XCexample}
@@ -143,7 +143,7 @@ figure illustrates the get communication performed in the example.
 
 \begin{myhint}
   As illustrated above, get communication involves an extra step to send
-  a request to the target node. Put communication achieves better
+  a request to the target {\node}. Put communication achieves better
   performance than get because there is no such extra step.
 \end{myhint}
 
@@ -325,7 +325,7 @@ among the all images.
 \end{figure}
 
 In the above example, the left image puts data to the right image and
-both nodes invoke \|sync all|. When both nodes returns from it, the
+both {\nodes} invoke \|sync all|. When both {\nodes} returns from it, the
 execution continues to the following satements.
 
 % \begin{XCexample}

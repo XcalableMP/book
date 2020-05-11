@@ -6,7 +6,7 @@ Procedure calls between other languages or to external libraries
 are also allowed if the base language supports them. 
 
 In the below example, a function/subroutine \|sub1()| calls another
-function/subroutine \|sub2()| with a distributed array \|x| as an
+function/subroutine \|sub2()| with a {\darray} \|x| as an
 argument.
 
 \begin{XCexample}
@@ -54,7 +54,7 @@ end subroutine
 % %
 % you need to redefine the shape of the distributed array in the procedure.
 
-To handle a parameter or dummy argument as a global data in the
+To handle a parameter or dummy argument as a {\bf global data} in the
 callee procedure, the programmer need to explicitly distribute it with
 an \|align| directive.
 
@@ -69,9 +69,9 @@ an \|align| directive.
 % them.
 
 If no \|align| directive is specified in the callee procedure for a
-parameter or dummy argument that is declared as a global data in the
+parameter or dummy argument that is declared as a {\bf global data} in the
 caller procedure, it is handled as if it were declared in the callee
-procedure as a local data on each node, as follows.
+procedure as a {\bf local data} on each {\node}, as follows.
 
 \begin{XCexample}
 void sub1(){

@@ -5,13 +5,13 @@
 Stencil computation frequently appears in scientific simulation programs,
 where, to update an array element \|a[i]|, its neighboring elements
 \|a[i-1]| and \|a[i+1]| are referenced. If \|a[i]| is on the boundary
-region of a block-distributed array on a node, \|a[i+1]| may reside on
-another (neighboring) node.
+region of a block-{\darray} on a {\node}, \|a[i+1]| may reside on
+another (neighboring) {\node}.
 
 Since it involves large overhead to copy \|a[i+1]| from the neighboring
-node to update each \|a[i]|, a technique of copying collectively the
-elements on the neighboring node to the area added to the distributed
-array on each node is usually adopted. In XMP, such additional area is
+{\node} to update each \|a[i]|, a technique of copying collectively the
+elements on the neighboring {\node} to the area added to the {\darray}
+on each {\node} is usually adopted. In XMP, such additional area is 
 called ``shadow.''
 
 \subsubsection{Declaring Shadow}
@@ -46,7 +46,7 @@ real :: a(16)
   \caption{Example of {\tt shadow} directive (1).}
 \end{figure}
 
-In the figure above, colored elements are those that each node owns and
+In the figure above, colored elements are those that each {\node} owns and
 white ones are shadow.
 
 \begin{mynote}
@@ -58,7 +58,7 @@ white ones are shadow.
 In some programs, it is natural that the widths of the shadow area on
 the lower and upper bounds are different. There is also a case where the
 shadow area exists only on either of the bounds. In the example below,
-it is declared that a distributed array \|a| has a shadow area of width
+it is declared that a {\darray} \|a| has a shadow area of width
 one only on the upper bound.
 
 \begin{XCexample}
@@ -92,7 +92,7 @@ widths on the lower and upper bounds, respectively.
 
 %\paragraph{General}
 
-To copy data to shadow areas from neighboring nodes, use the \|reflect|
+To copy data to shadow areas from neighboring {\nodes}, use the \|reflect|
 construct. In the example below, the shadow areas of an array \|a| that
 are of width one on both the upper and lower bounds are updated.
 
@@ -119,14 +119,14 @@ enddo
   \caption{Example of {\tt reflect} construct (1).}
 \end{figure}
 
-With this \|reflect| directive, in XMP/C, node \|p[1]| sends an element
-\|a[4]| to the shadow area on the upper bound on node \|p[0]| and
+With this \|reflect| directive, in XMP/C, {\node} \|p[1]| sends an element
+\|a[4]| to the shadow area on the upper bound on {\node} \|p[0]| and
 \|a[7]| to the shadow area on the lower bound on \|p[2]|; \|p[0]| sends
 an element \|a[3]| to the shadow area on the lower bound on \|p[1]|, and
 \|p[2]| sends \|a[8]| to the shadow area on the upper bound on \|p[1]|.
 
-Similarly, in XMP/Fortran, node \|p(2)| sends an element \|a(5)| to the
-shadow area on the upper bound on node \|p(1)| and \|a(8)| to the shadow
+Similarly, in XMP/Fortran, {\node} \|p(2)| sends an element \|a(5)| to the
+shadow area on the upper bound on {\node} \|p(1)| and \|a(8)| to the shadow
 area on the lower bound on \|p(3)|; \|p(1)| sends an element \|a(4)| to
 the shadow area on the lower bound on \|p(2)|, and \|p(3)| sends \|a(9)|
 to the shadow area on the upper bound on \|p(2)|.
@@ -167,7 +167,7 @@ bound is updated.
 \end{mynote}
 
 \begin{mynote}
-  It is not possible to update the shadow area on a particular node
+  It is not possible to update the shadow area on a particular {\node}
   because \|reflect| is a collective operation.
 \end{mynote}
 
@@ -184,8 +184,8 @@ bound is updated.
 %\paragraph{Update periodic shadow}
 
 The \|reflect| directive does not update either the shadow area on the
-lower bound on the leading node or that on the upper bound on the last
-node. However, the values in such areas are needed for stencil
+lower bound on the leading {\node} or that on the upper bound on the last
+{\node}. However, the values in such areas are needed for stencil
 computation if periodic boundary conditions are used in the computation.
 
 To update such areas, add a \|periodic| qualifier into the \|width|
@@ -207,11 +207,11 @@ shadow areas of width one on both the lower and upper bounds appears.
 \end{figure}
 
 The \|periodic| qualifier has the following effects, in addition to that of
-a normal \|reflect| directive: in XMP/C, node \|p[0]| sends an element
-\|a[0]| to the shadow area on the upper bound on node \|p[3]|, and
+a normal \|reflect| directive: in XMP/C, {\node} \|p[0]| sends an element
+\|a[0]| to the shadow area on the upper bound on {\node} \|p[3]|, and
 \|p[3]| sends \|a[15]| to the shadow area on the lower bound on \|p[0]|;
-in XMP/Fortran, node \|p(1)| sends an element \|a(1)| to the shadow area
-on the upper bound on node \|p(4)|, and \|p(4)| sends \|a(16)| to the
+in XMP/Fortran, {\node} \|p(1)| sends an element \|a(1)| to the shadow area
+on the upper bound on {\node} \|p(4)|, and \|p(4)| sends \|a(16)| to the
 shadow area on the lower bound on \|p(1)|.
 
 % \begin{mynote}
@@ -225,7 +225,7 @@ shadow area on the lower bound on \|p(1)|.
 
 The \|shadow| directive and \|reflect| construct can be applied to
 arrays distributed in multiple dimensions. The following programs are the
-examples for two-dimensional distribution.
+examples for two-dimensional {\bf distribution}.
 
 \begin{XCexample}
 #pragma xmp nodes p[3][3]
@@ -255,8 +255,8 @@ real :: a(9,9)
   \caption{Example of multi-dimensional shadow (1).}
 \end{figure}
 
-The central node receives data from the surrounding eight
-nodes to update its shadow areas. The shadow areas of the other nodes
+The central {\node} receives data from the surrounding eight
+{\nodes} to update its shadow areas. The shadow areas of the other {\nodes}
 are also updated, which is omitted in the figure.
 
 For some applications, data from ordinal directions are not
@@ -319,7 +319,7 @@ non-distributed dimensions.
 
 \subsection{{\tt gmove} Construct}
 
-The programmaers can specify a communication of distributed arrays in
+The programmaers can specify a communication of {\darrays} in
 the form of assignment statements by using the \|gmove| construct.
 %
 In other words, with the \|gmove| construct, any array assignment
@@ -342,7 +342,7 @@ There are three modes of \|gmove|; ``collective mode,'' ``in mode,'' and
 
 The global data movement involved by a {\it collective} \|gmove| is performed
 collectively, and results in implicit synchronization among the 
-executing nodes.
+{\bf executing nodes}.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -428,7 +428,7 @@ In XMP/C, \|p[0]| sends \|b[0]| and \|b[4]| to \|p[2]| and
 %   left-hand side.
 % \end{mynote}
 
-By using this method, the distribution of an array can be ``changed''
+By using this method, the {\bf distribution} of an array can be ``changed''
 during computation.
 
 \begin{XCexample}
@@ -472,7 +472,7 @@ a block manner are copied to the corresponding elements of an array \|a|
 that is distributed in a generalized-block manner.
 %
 For the arrays \|a| and \|b|, communication occurs if corresponding elements
-reside in different nodes (arrows illustrate communication between nodes in
+reside in different {\nodes} (arrows illustrate communication between {\nodes} in
 the figures).
 
 %\paragraph{Scalar}
@@ -511,14 +511,14 @@ integer :: a(16), b(16)
   \caption{Collective {\tt gmove} (4).}
 \end{figure}
 
-In this example, in XMP/C, an array element \|b[0]| of node \|p[0]| will be
-broadcasted to the specified array section on node \|p[2]| and
-\|p[3]|. Similarly, in XMP/Fortran, an array element \|b(1)| of node
-\|p(1)| will be broadcasted to the specified array section on node \|p(3)| and \|p(4)|.
+In this example, in XMP/C, an array element \|b[0]| of {\node} \|p[0]| will be
+broadcasted to the specified array section on {\node} \|p[2]| and
+\|p[3]|. Similarly, in XMP/Fortran, an array element \|b(1)| of {\node}
+\|p(1)| will be broadcasted to the specified array section on {\node} \|p(3)| and \|p(4)|.
 
 %\paragraph{Duplicated array and scalar}
 
-Not only distributed arrays but also replicated arrays can be specified
+Not only {\darrays} but also replicated arrays can be specified
 on the right-hand side.
 
 \begin{XCexample}
@@ -544,7 +544,7 @@ on the right-hand side.
 \end{XFexample}
 
 In this example, a replicated array \|b| is locally copied to
-distributed array \|a| without communication.
+{\darray} \|a| without communication.
 
 %\paragraph{Distributed array with different dimension}
 
@@ -594,8 +594,8 @@ on \|p(4)| are copied to \|a(:,1)| on \|p(1)|.
 %It operates as in mode by setting in clause to gmove directive.
 
 The right-hand side data of the assignment, all or part of which may
-reside outside the executing node set, can be transferred from its owner
-nodes to the executing nodes with an {\it in} \|gmove|.
+reside outside the {\enset}, can be transferred from its owner
+{\nodes} to the {\bf executing nodes} with an {\it in} \|gmove|.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -625,10 +625,10 @@ real :: a(4), b(4)
 !$xmp end task
 \end{XFexample}
 
-In this example, the \|task| directive divides four nodes into
+In this example, the \|task| directive divides four {\nodes} into
 two sets, the first-half and the second-half. A \|gmove| construct that
 is in an {\it in} mode copies data using a {\it get} operation from
-the second-half node to the first-half node.
+the second-half {\node} to the first-half {\node}.
 
 \begin{figure}
   \centering
@@ -640,8 +640,8 @@ the second-half node to the first-half node.
 \subsubsection{Out Mode}
 
 For the left-hand side data of the assignment, all or part of which may
-reside outside the executing node set, the corresponding elements can be
-transferred from the executing nodes to its owner nodes with an {\it out}
+reside outside the {\enset}, the corresponding elements can be
+transferred from the {\bf executing nodes} to its owner {\nodes} with an {\it out}
 \|gmove| construct.
 
 \begin{XCexample}
@@ -673,7 +673,7 @@ real :: a(4), b(4)
 \end{XFexample}
 
 A \|gmove| construct that is in {\it out} mode copies data using a {\it put}
-communication from the first-half nodes to the second-half nodes.
+communication from the first-half {\nodes} to the second-half {\nodes}.
 
 \begin{figure}
   \centering
@@ -694,9 +694,9 @@ The \|barrier| construct executes a barrier synchronization.
 !$xmp barrier
 \end{XFexample}
 
-You can specify a node set on which the barrier synchroniation is to be
+You can specify a {\nset} on which the barrier synchroniation is to be
 performed by using the \|on| clause. In the below example, a barrier
-synchronization is performed among the first two nodes of \|p|.
+synchronization is performed among the first two {\nodes} of \|p|.
 
 \begin{XCexample}
 #pragma xmp barrier on p[0:2]
@@ -733,8 +733,8 @@ sum = xmp_node_num()
   \caption{{\tt reduction} construct (1).}
 \end{figure}
 
-You can specify the executing node set by using the \|on| clause. In the
-below example, only the values on the last two of the four nodes are
+You can specify the {\enset} by using the \|on| clause. In the
+below example, only the values on the last two of the four {\nodes} are
 targeted by the \|reduction| construct.
 
 \begin{XCexample}
@@ -809,17 +809,17 @@ ieor
 \subsection{{\bf bcast} Construct}
 
 The \|bcast| construct broadcasts the values of the variables on the
-node specified by the \|from| clause, that is, the {\it root node}, to
-the node set specified by the \|on| clause.
+{\node} specified by the \|from| clause, that is, the {\it root node}, to
+the {\nset} specified by the \|on| clause.
 %
-If there is no \|from| clause, the first node of the executing node
-set is selected as the root node.
+If there is no \|from| clause, the first {\node} of the {\enset}
+is selected as the root {\node}.
 %
-If there is no \|on| clause, the current executing node set of the
-construct is selected as the executing node set.
+If there is no \|on| clause, the current {\enset} of the
+construct is selected as the {\enset}.
 
-In the below example, the first node of the node set \|p|, that is,
-\|p[0]| or \|p(1)|, is the root node.
+In the below example, the first {\node} of the {\nset} \|p|, that is,
+\|p[0]| or \|p(1)|, is the root {\node}.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -841,7 +841,7 @@ num = xmp_node_num()
   \caption{{\tt bcast} construct (1).}
 \end{figure}
 
-In the below example, the last node, that is, \|p[3]| or \|p(4)|, is the \|from| clause.
+In the below example, the last {\node}, that is, \|p[3]| or \|p(4)|, is the \|from| clause.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
@@ -863,8 +863,8 @@ num = xmp_node_num()
   \caption{{\tt bcast} construct (2).}
 \end{figure}
 
-In the below example, only the last three of four nodes
-are included by the executing node set of the \|bcast| construct.
+In the below example, only the last three of four {\nodes}
+are included by the {\enset} of the \|bcast| construct.
 
 \begin{XCexample}
 #pragma xmp nodes p[4]
