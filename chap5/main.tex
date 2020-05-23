@@ -65,9 +65,9 @@ stringstyle={\small\ttfamily},
 %
 \maketitle
 
-\abstract*{This chapter describes the linkage functions between XcalableMP and MPI library. Moreover, it also describes how to call XMP program from Python program.}
+\abstract*{This chapter shows  linkage functions between XcalableMP and MPI library. Moreover, it  describes how to call XcalableMP program from Python program.}
 
-\abstract{This chapter describes the linkage functions between XcalableMP and MPI library. Moreover, it also describes how to call XMP program from Python program.}
+\abstract{This chapter shows  linkage functions between XcalableMP and MPI library. Moreover, it  describes how to call XcalableMP program from Python program.}
 
 \section{Background}
 To develop applications on high-performance computing (HPC) cluster systems,
@@ -339,6 +339,268 @@ Note that a python program executes with one process, but an XMP program is exec
 \begin{svgraybox}
 \$ mpirun -np 1 python bar.py
 \end{svgraybox}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Application to order/degree problem}
+\subsection{What is order/degree program}
+The order/degree problem is a problem that minimizes the diameter and average shortest path length (ASPL) among vertices in an undirected graph with a given number of vertices and degrees. 
+The problem is useful for designing low latency interconnection networks\cite{graphgolf}.
+
+From the number of vertices ($n$) and degrees ($d$), 
+the theoretical lower bounds of the diameter ($K_{n,d}$) and the ASPL ($L_{n,d}$) are calculated as follows\cite{graphgolf,NET:NET3230040405}:
+
+\begin{equation*}
+K_{n,d} = \left\{
+\begin{array}{ll}
+\lceil \frac{n-1}{2} \rceil  & {\rm if}\phantom{a} d = 2 \\[5pt]
+\lceil \log_{d-1} (\frac{(n-1)(d-2)}{d}) + 1 \rceil  & {\rm if}\phantom{a} d > 2
+%\ceil*{ \frac{n-1}{2}} & {\rm if}\phantom{a} d = 2 \\[5pt]
+%\ceil*{ \log_{d-1} (\frac{(n-1)(d-2)}{d}) + 1} & {\rm if}\phantom{a} d > 2
+\end{array}
+\right.
+\end{equation*}
+
+\begin{equation*}
+L_{n,d} = \left\{
+\begin{array}{ll}
+1 & {\rm if}\phantom{a} K_{n,d} = 1 \\
+\frac{S_{n,d}+K_{n,d}R_{n,d}}{n-1} & {\rm if}\phantom{a} K_{n,d} \geq 2
+\end{array}
+\right.
+\end{equation*}
+
+\begin{equation*}
+S_{n,d} =
+\sum_{i=1}^{K_{n,d}-1}  id(d-1)^{i-1} 
+\end{equation*}
+
+\begin{equation*}
+R_{n,d} = n - 1 - 
+\sum_{i=1}^{K_{n,d}-1}  d(d-1)^{i-1} 
+\end{equation*}
+
+\begin{figure}[t]
+ \begin{minipage}{0.5\hsize}
+  \begin{center}
+\includegraphics[scale=0.25,clip]{img/n10d3-random.eps}
+\caption{Diameter = 3，ASPL = 1.89}\label{fig:example-random}
+  \end{center}
+ \end{minipage}
+ \begin{minipage}{0.5\hsize}
+  \begin{center}
+\includegraphics[scale=0.25,clip]{img/n10d3-opt.eps}
+\caption{Diameter = 2，ASPL =1.67}\label{fig:example-opt}
+  \end{center}
+ \end{minipage}
+\end{figure}
+
+Fig.~\ref{fig:example-random} and Fig.~\ref{fig:example-opt} 
+show examples of  graphs with  $n=10$ and $d=3$ and their distance matrices. 
+The distance matrix indicates the shortest hop count between vertices. 
+The diameter is the maximum value of the elements in the distance matrix. 
+ASPL is the value obtained by dividing the total value of all elements by the number of elements $(n^2 - n)/2$. 
+While the graph in Fig.~\ref{fig:example-random} has random edges, the graph in Fig.~\ref{fig:example-opt} has edges optimized by our algorithm, 
+which is described in section \ref{sec:implementation}. 
+The diameter and ASPL of Fig.~\ref{fig:example-opt} are theoretical lower bounds.
+
+\begin{table*}[t]
+\centering
+\caption{Combination of vertices and degrees of General Graph Category in 2017} \label{tab:syutudai}
+\begin{tabular}{r||r|r|r|r|r|r|r|r|r|r}\hline\hline
+Number of vertices & 32 & 256 & 576 & 1344 & 4896 & 9344 & 88128 & 98304 & 100,000 & 100,000 \\ \hline
+Number of degrees & 5 & 18 & 30 & 30 & 24 & 10 & 12 & 10 & 32 & 64\\ \hline
+\end{tabular}
+\end{table*}
+
+In an effort to expand the order/degree problem into open science, 
+the National Institute of Informatics has held a ``Graph Golf'' competition every year since 2015 to search for the smallest diameter and ASPL. 
+A combination of several vertices and degrees is provided in each of those events. 
+The competition has two categories: one is the General Graph Category, 
+where vertices are placed freely, and the other is the Grid Graph Category, 
+where vertices are placed on a two-dimensional grid. 
+This section deals with the General Graph Category. 
+Table \ref{tab:syutudai} shows the combination of vertices and degrees used in 2017.
+
+A python program ``create-random.py'' for the  order/degree problem is available on the official Graph Golf website\cite{graphgolf}. 
+The program outputs follow from the number of vertices and degrees. These calculations use the Python networkx package\cite{networkx}.
+
+\begin{itemize}
+\item Initial graph with random edges (the graph of Fig.~\ref{fig:example-random} is created by this function)
+\item Calculation of diameter and ASPL 
+\item Graph figure in Portable Network Graphics (PNG) format (the graphs shown Fig.~\ref{fig:example-random} and Fig.~\ref{fig:example-opt} are created by this function)
+\end{itemize}
+
+\subsection{Implementation}\label{sec:implementation}
+The ``create-random.py'' does not search out the smallest diameter and ASPL. 
+Moreover, to obtain diameter and ASPL of a graph, 
+it is necessary to calculate all of the shortest paths among its vertices.
+Although the ``create-random.py'' calculates the shortest paths using the {\bf shortest\_path\_length} method of the networkx package,
+this method requires a significant amount of time.
+
+\begin{figure}[t]
+\centering
+\includegraphics[scale=0.55,clip]{img/flow.eps}
+\caption{Flow chart of an algorithm in Python and XMP/C} \label{fig:flow}
+\end{figure}
+
+To search for the smallest diameter and ASPL, 
+we developed a GraphGolf code in both Python and XMP/C based on ``create-random.py.'' 
+A Simulated Annealing (SA)\cite{Metropolis1953, Kirkpatrick671} algorithm is used for optimization. 
+The shortest paths calculation is parallelized by XMP directives. 
+Fig.~\ref{fig:flow} shows a flow chart for the algorithm. 
+While Python is used to create initial graph and output the figure, 
+XMP/C is used to implement other parts.
+
+\begin{figure}[t]
+\begin{lstlisting}
+import ctypes
+import xmp 
+import networkx as nx
+import argparse
+
+argumentparser = argparse.ArgumentParser()
+argumentparser.add_argument('vertex', type=int)
+argumentparser.add_argument('degree', type=int)
+vertex = args.vertex
+degree = args.degree
+
+arr = ((c_int * 2) * (vertex * degree / 2 + 1))()
+arr[i][0] = vertex
+arr[i][1] = degree
+for i, l in enumerate(nx.generate_edgelist(g, data=False)):
+    arr[i+1][0] = int(l.split()[0])
+    arr[i+1][1] = int(l.split()[1])
+
+lib = xmp.Lib("xmp_graphgolf.so")
+lib.spawn(4, "xmp_graphgolf", arr, async = False)
+
+image_name = "n"+str(vertex)+"d"+str(degree)+".png"
+lines = []
+for line in arr:
+    lines.append(str(line[0]) + " " + str(line[1]))
+    G = nx.parse_edgelist(lines, nodetype = int)
+    save_image(G, image_name)
+
+def save_image(g, filepath):
+    import matplotlib as mpl
+    mpl.use('Agg')
+    import matplotlib.pyplot as plt
+    layout = nx.circular_layout(g)
+    nx.draw(g, with_labels=False, node_size=50, linewidths=0, alpha=0.5, node_color='#3399ff', edge_color='#666666', pos=layout)
+    plt.draw()
+    plt.savefig(filepath)
+        
+\end{lstlisting}
+\caption{Code in Python} \label{fig:program-python}
+\end{figure}
+
+\begin{figure}[t]
+\begin{lstlisting}
+#pragma xmp template t[:]
+#pragma xmp nodes p[*]
+#pragma xmp distribute t[block] onto p
+
+void xmp_graphgolf(int *edge)
+{
+    :
+int vertices = edge[0];
+#pragma xmp template_fix t[vertices]
+#pragma xmp loop on t[i]
+  for(int i=0;i<vertices;i++){
+    :  // Calculate diameter and ASPL
+    }
+#pragma xmp reduction(+:ASPL)
+#pragma xmp reduction(max:diameter)
+  :
+}
+\end{lstlisting}
+\caption{Code in XMP/C} \label{fig:program-xmp}
+\end{figure}
+
+
+Fig.~\ref{fig:program-python} and  Fig.~\ref{fig:program-xmp} show a portion of our codes.
+In lines 6-10 of Fig.~\ref{fig:program-python}, 
+the number of vertices and degrees are transformed to allow their use in the program. 
+In lines 12-17, an initial graph is created and set a variable {\it arr}. 
+The first element of the variable {\it arr} stores the number of vertices and the degree.
+In lines 19-20, 
+the initial graph is passed to the {\bf xmp\_graphgolf} function of Fig.~\ref{fig:program-xmp}, which optimizes it. 
+The result is saved in a variable {\it arr}, 
+which is the same as one of the arguments. 
+After  line 22, the result is transformed into a figure. 
+In lines 1-3 of Fig.~\ref{fig:program-xmp}, 
+the XMP directives declare the template and node set, 
+and then distributes the template onto the node set in a block manner. 
+In line 1, the ``[:]'' means that the template size is not fixed at this point. 
+In line 9, the \textbf{template\_fix} directive determines the template size {\it vertices}, which is the number of vertices. 
+In lines 11-13, a diameter and ASPL are calculated. The calculation is a state of the ``Compute energy'' shown in Fig.~\ref{fig:flow}. 
+This calculation uses the top-down approach of the breadth-first search.
+%The calculation order for the shortest path of all vertexes is $O(n^2d)$. 
+In line 10, the {\bf loop} directive parallelizes the loop statement to calculate each shortest path in parallel. In lines 14-15, 
+the {\bf reduction} directives aggregate a diameter and ASPL stored at each node.
+
+\subsection{Evaluation}
+\begin{table}[t] 
+\renewcommand{\arraystretch}{1.2}
+\centering
+\caption{Coma system specifications} \label{tab:coma}
+\begin{tabular}{l|l}\hline \hline
+CPU & Intel Xeon-E5 2670v2 2.5 GHz 10 Cores x 2 Sockets \\
+Memory & DDR3 1866MHz 59.7GB/s 64GB \\
+Network & InfiniBand FDR 7GB/s \\
+\multirow{2}{*}{Software} & intel/16.0.2, intelmpi/5.1.1, Omni compiler 1.2.1 \\
+& Python 2.7.9, networkx 1.9\\ \hline
+\end{tabular}
+\end{table}
+
+To evaluate the performance of the Graph Golf application, 
+we used the ``coma'' system located in University of Tsukuba, the specifications of which are shown in Table \ref{tab:coma}. 
+
+\begin{figure}[t]
+\centering
+\includegraphics[scale=0.55,clip]{img/result.eps}
+\caption{Performance evaluation} \label{fig:result}
+\end{figure}
+
+We measured the time required to calculate all of the shortest paths once by changing the number of nodes.
+We assigned 20 XMP nodes to each compute node, and used
+a medium-sized number of vertices and degrees ($n = 9344$, $d = 10$), as shown in Table \ref{tab:syutudai}.
+
+Fig.~\ref{fig:result} shows performance results where the bar graph shows the time measurements, 
+and the line graph shows the parallel efficiency of one XMP node.
+The time for one XMP node is 123.17 seconds, 
+while the time for 1,280 XMP nodes (using 64 compute nodes) is 0.13 seconds, 
+which is 921 times faster. 
+Since the time using the Python networkx package is 148.83 seconds in one CPU core, 
+XMP achieved a performance improvement of 21\%.
+
+\begin{figure}[t]
+\centering
+\includegraphics[scale=0.55,clip]{img/comm.eps}
+\caption{Calculation and communication ratio}\label{fig:comm}
+\end{figure}
+
+From an examination of Fig.~\ref{fig:result}, we found that the parallel efficiency decreases as the number of nodes increases. 
+We consider that the following reasons are responsible for the decrease:
+
+\begin{itemize}
+\item The ratio of communication time increases. 
+Fig.~\ref{fig:comm} shows the ratio of communication time and calculation time to the total time. 
+As the number of nodes increases, the proportion of communication time also increases.
+\item The parallelized loop lengths are non-uniform. 
+The length of the loop statement in line 11 of Fig.~\ref{fig:program-xmp} is 9,344, 
+which is the same as the number of vertices. 
+Since the length is divided by the number of nodes, 
+the length non-uniformity increases as the number of nodes increases.
+%For example, even if the communication time is 0 using 1,280 XMP nodes, 
+%the maximum parallel efficiency becomes 0.91 (= $9344/(\lceil 9334/1280 \rceil/1280)$).
+%Since the length is divided by the number of nodes,
+%each node has eight indices at the maximum ( $\lceil 9334/1280 \rceil = 8$).
+%As the number of nodes increases, the length non-uniformity increases.
+%For example,
+%even if the communication time is 0 using 1,280 nodes, 
+%the maximum parallel efficiency becomes 0.91 (= $9344/(8/1280)$).
+\end{itemize}
 
 \section{Conclusion}
 This chapter describes how to use  linkage functions between XMP and MPI library in Omni compiler. 
