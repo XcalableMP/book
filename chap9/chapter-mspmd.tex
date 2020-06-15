@@ -32,6 +32,15 @@
 
 From petascale, post-peta scale to exascale, supercomputers will be larger, denser and more complicated. A huge number of cores will be arranged in a multi-level hierarchy such as a group of cores in a node, a group or cluster of nodes tightly linked, and a cluster of clusters. Because it is not easy to fully utilize such systems for current programming models such as simple SPMD, OpenMP+MPI, it is important to adopt multiple programming models across different architecture levels. In order to exploit the performance of such systems, we have proposed a new programming model called multi-SPMD (mSPMD) programming model, where several MPI programs and OpenMP+MPI programs work together conducted by a workflow programming\cite{tsuji2013c}. To develop each of the mSPMD components in a workflow, XcalableMP (XMP) has been supported. In this chapter, we introduce the mSPMD programming model and a development and execution environment implemented to realize the mSPMD programming model.
 
+\section{Background: International collaborations for the post-petascale and exascale computing}
+
+There were two important international collaborative projects to plan, implement and evaluate the multi SPMD programming model. In this section, I describe the projects briefly.
+
+Firstly,  Framework and Programming for Post Petascale Computing (FP3C)  project conducted during September 2010 - March 2013 aimed to exploite effecient programming and method for the future supercomputers. The FP3C project was a French-Japan research project, where more than 10 Universities and research institutes participated. Featured topics of the project were new programming paradigms, languages, methods and systems for the existing and future supercomputers.   The mSPMD programming had been proposed in the FP3C project and many important features in the mSPMD programming model had been implemented during the project period.
+
+The  priority program "Software for Exascale Computing" (SPPEXA) had been conducted to address fundamental research on the various aspects of HPC software during 2013-2015 (phase-I) and 206-2018 (phase II). The project "MUST Correctness Checking for YML and XMP Programs (MYX) " had been selected as a phase-II program of the SPPEXA. As the name of the project suggested, the MYX project combined MUST, developed in Germany, YML, developed in France, and XMP, developed in Japan to investigate the application of scalable correctness checking methods.
+The deliverable from the MYX project will be described in section \ref{section:Runtime correctness check for the mSPMD programming model}.
+
 \section{Multi SPMD programming model}
 \label{section:multi spmd programming model}
 
