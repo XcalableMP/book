@@ -1,0 +1,80 @@
+%%%%%%%%%%%%%%%%%%%% author.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% sample root file for your "contribution" to a contributed volume
+%
+% Use this file as a template for your own input.
+%
+%%%%%%%%%%%%%%%% Springer %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RECOMMENDED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[graybox]{svmult}
+% choose options for [] as required from the list
+% in the Reference Guide
+\usepackage{type1cm}        % activate if the above 3 fonts are
+                            % not available on your system
+%
+\usepackage{makeidx}         % allows index generation
+\usepackage{graphicx}        % standard LaTeX graphics tool
+                             % when including Fig.~files
+\usepackage{multicol}        % used for the two-column index
+\usepackage[bottom]{footmisc}% places footnotes at page bottom
+\usepackage{newtxtext}       % 
+\usepackage{newtxmath}       % selects Times Roman as basic font
+% see the list of further useful packages
+% in the Reference Guide
+%\makeindex             % used for the subject index
+                       % please use the style svind.ist with
+                       % your makeindex program
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{listings, multirow}
+\lstset{%
+ language={C},
+% basicstyle={\scriptsize},%
+% identifierstyle={\scriptsize},%
+ basicstyle={\small},%
+ identifierstyle={\small},%
+% commentstyle={\small\itshape},%
+%commentstyle={\scriptsize},%
+commentstyle={\small},%
+ keywordstyle={\small\bfseries},%
+ ndkeywordstyle={\small},%
+stringstyle={\small\ttfamily},
+ frame={tb},
+ breaklines=true,
+ columns=[l]{fullflexible},%
+ numbers=left,%
+ xrightmargin=1zw,%
+ xleftmargin=1.5zw,%
+ numberstyle={\small},%
+ stepnumber=1,
+ numbersep=1zw,%
+% lineskip=-0.1ex%
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bibliographystyle{plain}
+
+\begin{document}
+\title*{
+  Hybrid-view Programming of Nuclear Fusion Simulation Code in XcalableMP
+}
+% Use \titlerunning{Short Title} for an abbreviated version of
+% your contribution title if the original one is too long
+\author{
+  Keisuke Tsugane, Taisuke Boku, Hitoshi Murai,
+  Mitsuhisa Sato, William Tang and Bei Wang
+}
+% Use \authorrunning{Short Title} for an abbreviated version of
+% your contribution title if the original one is too long
+
+\institute{Masahiro Nakao \at RIKEN Center for Computational Science, 7-1-26 Minatojima-minami-machi, Chuo-ku, Kobe, Hyogo 650-0047, Japan, \email{masahiro.nakao@riken.jp}}
+%
+% Use the package "url.sty" to avoid
+% problems with special characters
+% used in your e-mail or web address
+%
+\maketitle
+
+\input{contents.tex}
+
+\bibliography{mybibfile}
+
+\end{document}
